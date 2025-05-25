@@ -24,11 +24,35 @@ if ! wrangler whoami > /dev/null 2>&1; then
     exit 1
 fi
 
+echo "🧹 Cleaning cache..."
+rm -rf .next/cache
+
 echo "📦 Building application..."
 npm run build
 
+echo "🧹 Removing cache after build..."
+rm -rf .next/cache
+
 echo "☁️  Deploying to Cloudflare Pages..."
-wrangler pages deploy .next --config wrangler.local.toml --project-name configtranslator
+
+# Backup original wrangler.toml if it exists
+if [ -f "wrangler.toml" ]; then
+    cp wrangler.toml wrangler.toml.backup
+fi
+
+# Copy local config to default location for deployment
+cp wrangler.local.toml wrangler.toml
+
+# Deploy using the default config file with --commit-dirty to ignore git warnings
+wrangler pages deploy .next --project-name configtranslator --commit-dirty=true
+
+# Restore original wrangler.toml
+if [ -f "wrangler.toml.backup" ]; then
+    mv wrangler.toml.backup wrangler.toml
+else
+    # If no backup exists, restore the placeholder version
+    git checkout wrangler.toml 2>/dev/null || echo "⚠️  Could not restore original wrangler.toml"
+fi
 
 echo "🔐 Setting up secrets..."
 echo "Please set your OpenRouter API key:"

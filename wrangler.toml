@@ -24,8 +24,8 @@ id = "YOUR_KV_NAMESPACE_ID_HERE"
 [vars]
 NODE_ENV = "production"
 NEXT_PUBLIC_SITE_NAME = "ConfigTranslator"
-NEXT_PUBLIC_SITE_URL = "https://your-project-name.pages.dev"
+NEXT_PUBLIC_SITE_URL = "https://configtranslator.pages.dev"
 
 # Secrets (set via wrangler secret put or Cloudflare dashboard)
-# OPENROUTER_API_KEY = "your_api_key_here"
-# IP_HASH_SALT = "your_secure_salt_here" 
+# OPENROUTER_API_KEY = "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"
+# IP_HASH_SALT = "noxidsdjnjnjnjdnjfnsjnjvverv" 

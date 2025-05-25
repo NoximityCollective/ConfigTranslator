@@ -86,7 +86,10 @@ Return ONLY the translated configuration chunk with the same exact structure and
 }
 
 // Simple GET endpoint to test if the API route is working
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const clientId = getClientIdentifier(request)
+  const rateLimitStats = rateLimiter.getStats()
+  
   return NextResponse.json({
     status: 'API route is working',
     runtime: 'edge',
@@ -95,6 +98,11 @@ export async function GET() {
       hasApiKey: !!process.env.OPENROUTER_API_KEY,
       siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
       siteName: process.env.NEXT_PUBLIC_SITE_NAME
+    },
+    rateLimiter: {
+      clientId: clientId.substring(0, 20) + '...',
+      stats: rateLimitStats,
+      currentStatus: rateLimiter.check(clientId)
     }
   })
 }

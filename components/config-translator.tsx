@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { Upload, Download, FileText, Globe, Clock, Hash, BarChart3, Copy, Check, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,6 +27,28 @@ export function ConfigTranslator() {
   const [rateLimitInfo, setRateLimitInfo] = useState<{ remaining: number; limit: number } | null>(null)
 
   const { toast } = useToast()
+
+  // Check rate limit status on component mount
+  useEffect(() => {
+    const checkRateLimit = async () => {
+      try {
+        const response = await fetch('/api/translate')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.rateLimiter?.currentStatus) {
+            setRateLimitInfo({
+              remaining: data.rateLimiter.currentStatus.remaining,
+              limit: 10
+            })
+          }
+        }
+      } catch (error) {
+        console.log('Could not check rate limit status:', error)
+      }
+    }
+    
+    checkRateLimit()
+  }, [])
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -204,6 +226,28 @@ export function ConfigTranslator() {
             </Badge>
           </div>
         )}
+        
+        {/* Debug: Show rate limit status */}
+        <div className="mt-2">
+          <button 
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/translate')
+                const data = await response.json()
+                console.log('Rate limit debug:', data.rateLimiter)
+                toast({
+                  title: "Rate Limit Debug",
+                  description: `Remaining: ${data.rateLimiter?.currentStatus?.remaining || 'Unknown'}, Total entries: ${data.rateLimiter?.stats?.totalEntries || 0}`,
+                })
+              } catch (error) {
+                console.error('Debug error:', error)
+              }
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            🔍 Debug Rate Limit Status
+          </button>
+        </div>
 
         <div className="mt-4">
           <a 

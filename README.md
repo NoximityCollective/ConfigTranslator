@@ -235,7 +235,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🔗 Links
 
-- **📧 Contact**: [hello@noximity.com](mailto:hello@noximity.com)
+- **📧 Contact**: [business@noximity.com](mailto:business@noximity.com)
 - **🐙 GitHub**: [@NoximityCollective](https://github.com/NoximityCollective)
 - **☕ Support**: [Ko-fi](https://ko-fi.com/noximitycollective)
 
@@ -245,6 +245,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **Made with ❤️ for the Minecraft community**
 
-*ConfigTranslator • © 2024 Noximity Collective*
+*ConfigTranslator • © 2025 Noximity Collective*
 
 </div>

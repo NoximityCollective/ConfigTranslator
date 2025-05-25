@@ -73,7 +73,7 @@ export function Footer() {
         <div className="mt-8 pt-6 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              © 2024 Noximity Collective. Made with ❤️ for the Minecraft community.
+              © 2025 Noximity Collective. Made with ❤️ for the Minecraft community.
             </div>
             <div className="text-sm text-muted-foreground">
               Rate limited to 10 translations per hour • Max 100KB file size

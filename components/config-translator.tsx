@@ -29,37 +29,38 @@ export function ConfigTranslator() {
 
   const { toast } = useToast()
 
+  // Function to refresh translation stats and rate limit info
+  const refreshStats = useCallback(async () => {
+    try {
+      const response = await fetch('/api/translate')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.rateLimiter?.currentStatus) {
+          setRateLimitInfo({
+            remaining: data.rateLimiter.currentStatus.remaining,
+            limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10, // Handle local dev
+            resetTime: data.rateLimiter.currentStatus.resetTime
+          })
+        }
+        if (data.translationStats) {
+          setTranslationStats(data.translationStats)
+        }
+      }
+    } catch (error) {
+      console.log('Could not check rate limit status:', error)
+    }
+  }, [])
+
   // Check rate limit status on component mount and periodically refresh
   useEffect(() => {
-    const checkRateLimit = async () => {
-      try {
-        const response = await fetch('/api/translate')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.rateLimiter?.currentStatus) {
-            setRateLimitInfo({
-              remaining: data.rateLimiter.currentStatus.remaining,
-              limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10, // Handle local dev
-              resetTime: data.rateLimiter.currentStatus.resetTime
-            })
-          }
-          if (data.translationStats) {
-            setTranslationStats(data.translationStats)
-          }
-        }
-      } catch (error) {
-        console.log('Could not check rate limit status:', error)
-      }
-    }
-    
     // Initial check
-    checkRateLimit()
+    refreshStats()
     
     // Refresh every 30 seconds for better UX
-    const interval = setInterval(checkRateLimit, 30000)
+    const interval = setInterval(refreshStats, 30000)
     
     return () => clearInterval(interval)
-  }, [])
+  }, [refreshStats])
 
   // Helper function to format reset time
   const formatResetTime = (resetTime: number) => {
@@ -88,24 +89,7 @@ export function ConfigTranslator() {
       const now = Date.now()
       if (now >= rateLimitInfo.resetTime!) {
         // Rate limit has expired, refresh the status
-        const checkRateLimit = async () => {
-          try {
-            const response = await fetch('/api/translate')
-            if (response.ok) {
-              const data = await response.json()
-              if (data.rateLimiter?.currentStatus) {
-                setRateLimitInfo({
-                  remaining: data.rateLimiter.currentStatus.remaining,
-                  limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10,
-                  resetTime: data.rateLimiter.currentStatus.resetTime
-                })
-              }
-            }
-          } catch (error) {
-            console.log('Could not refresh rate limit status:', error)
-          }
-        }
-        checkRateLimit()
+        refreshStats()
       }
     }, 1000)
 
@@ -181,13 +165,8 @@ export function ConfigTranslator() {
       setTranslationResult(result)
       setProgress(100)
       
-      // Update translation stats if available
-      if (result.totalTranslations !== undefined) {
-        setTranslationStats({
-          totalTranslations: result.totalTranslations,
-          lastUpdated: new Date().toISOString()
-        })
-      }
+      // Refresh stats immediately after successful translation
+      await refreshStats()
       
       // Update rate limit info if available
       if (result.rateLimitInfo) {
@@ -222,25 +201,8 @@ export function ConfigTranslator() {
     } catch (error) {
       // Check if it's a rate limit error and update the state
       if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
-        // Try to extract reset time from error message or refresh rate limit status
-        const checkRateLimit = async () => {
-          try {
-            const response = await fetch('/api/translate')
-            if (response.ok) {
-              const data = await response.json()
-              if (data.rateLimiter?.currentStatus) {
-                setRateLimitInfo({
-                  remaining: data.rateLimiter.currentStatus.remaining,
-                  limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10,
-                  resetTime: data.rateLimiter.currentStatus.resetTime
-                })
-              }
-            }
-          } catch (error) {
-            console.log('Could not refresh rate limit status:', error)
-          }
-        }
-        checkRateLimit()
+        // Refresh rate limit status
+        refreshStats()
       }
       
       toast({

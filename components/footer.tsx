@@ -76,7 +76,7 @@ export function Footer() {
               © 2025 Noximity Collective. Made with ❤️ for the Minecraft community.
             </div>
             <div className="text-sm text-muted-foreground">
-              Rate limited to 10 translations per hour • Max 100KB file size
+              Max 100KB file size • Unlimited translations
             </div>
           </div>
         </div>

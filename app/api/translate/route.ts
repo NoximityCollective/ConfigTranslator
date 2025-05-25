@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     rateLimiter: {
       clientId: clientId.substring(0, 20) + '...',
       stats: rateLimitStats,
-      currentStatus: rateLimiter.check(clientId)
+      currentStatus: rateLimiter.peek(clientId)
     }
   })
 }

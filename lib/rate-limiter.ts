@@ -89,6 +89,52 @@ class EdgeRateLimiter {
     }
   }
 
+  // Get current status without consuming rate limit
+  peek(identifier: string): { allowed: boolean; remaining: number; resetTime: number } {
+    const now = Date.now()
+    
+    // Check if we're in local development (unlimited rate limit)
+    const isLocalDev = this.isLocalDevelopment()
+    
+    if (isLocalDev) {
+      return {
+        allowed: true,
+        remaining: 999, // Show high number for local dev
+        resetTime: now + this.windowMs
+      }
+    }
+
+    const entry = this.requests.get(identifier)
+
+    // Clean up expired entries
+    this.cleanup(now)
+
+    if (!entry || now > entry.resetTime) {
+      // First request or window expired - would have full limit available
+      return {
+        allowed: true,
+        remaining: this.maxRequests,
+        resetTime: now + this.windowMs
+      }
+    }
+
+    if (entry.count >= this.maxRequests) {
+      // Rate limit exceeded
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: entry.resetTime
+      }
+    }
+
+    // Return current status without incrementing
+    return {
+      allowed: true,
+      remaining: this.maxRequests - entry.count,
+      resetTime: entry.resetTime
+    }
+  }
+
   // Get current stats (for debugging)
   getStats() {
     return {

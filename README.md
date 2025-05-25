@@ -51,6 +51,7 @@ ConfigTranslator is a **free, AI-powered web application** that intelligently tr
 - JSON (`.json`)
 - Properties (`.properties`)
 - Config files (`.conf`, `.config`)
+- Language files (`.lang`)
 
 </td>
 <td width="50%">
@@ -148,7 +149,7 @@ graph LR
 
 ### Translation Process
 
-1. **Upload** your configuration file (YAML, JSON, Properties, etc.)
+1. **Upload** your configuration file (YAML, JSON, Properties, Lang, etc.)
 2. **Select** target language from 7 supported options
 3. **AI analyzes** and translates only human-readable content
 4. **Preserves** all technical elements:
@@ -180,7 +181,7 @@ graph LR
 | **Translations** | Unlimited | No rate limits |
 | **File Size** | 100KB max | Sufficient for most configs |
 | **Languages** | 7 supported | More coming soon |
-| **File Types** | 6 formats | YAML, JSON, Properties, etc. |
+| **File Types** | 7 formats | YAML, JSON, Properties, Lang, etc. |
 
 ---
 

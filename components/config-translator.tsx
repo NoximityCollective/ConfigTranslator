@@ -42,13 +42,13 @@ export function ConfigTranslator() {
     }
 
     // Check file type
-    const allowedTypes = ['.yml', '.yaml', '.json', '.properties', '.conf', '.config']
+    const allowedTypes = ['.yml', '.yaml', '.json', '.properties', '.conf', '.config', '.lang']
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
     
     if (!allowedTypes.includes(fileExtension)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a configuration file (.yml, .yaml, .json, .properties, .conf, .config).",
+        description: "Please upload a configuration file (.yml, .yaml, .json, .properties, .conf, .config, .lang).",
         variant: "destructive"
       })
       return
@@ -203,14 +203,14 @@ export function ConfigTranslator() {
               Upload Configuration
             </CardTitle>
             <CardDescription>
-              Upload your Minecraft plugin configuration file (max 100KB)
+              Upload your Minecraft plugin configuration or language file (max 100KB)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
               <input
                 type="file"
-                accept=".yml,.yaml,.json,.properties,.conf,.config"
+                accept=".yml,.yaml,.json,.properties,.conf,.config,.lang"
                 onChange={handleFileUpload}
                 className="hidden"
                 id="file-upload"
@@ -221,7 +221,7 @@ export function ConfigTranslator() {
                   Click to upload or drag and drop
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Supports: .yml, .yaml, .json, .properties, .conf, .config
+                  Supports: .yml, .yaml, .json, .properties, .conf, .config, .lang
                 </p>
               </label>
             </div>

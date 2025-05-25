@@ -62,7 +62,7 @@ export function Footer() {
             <div className="space-y-1 text-sm text-muted-foreground">
               <div>✨ AI-Powered Translation</div>
               <div>🎨 MiniMessage Support</div>
-              <div>📁 Multiple File Formats</div>
+              <div>📁 7 File Formats Supported</div>
               <div>🚀 Free to Use</div>
               <div>🌍 7 Languages Supported</div>
             </div>

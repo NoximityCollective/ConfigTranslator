@@ -38,7 +38,19 @@ const MOCK_TRANSLATIONS: Record<string, Record<string, string>> = {
     'Please wait %time% seconds before using this command again.': 'Por favor espera %time% segundos antes de usar este comando otra vez.',
     'Player not found!': '¡Jugador no encontrado!',
     'Your balance: $%balance%': 'Tu saldo: $%balance%',
-    'Available destinations: %count%': 'Destinos disponibles: %count%'
+    'Available destinations: %count%': 'Destinos disponibles: %count%',
+    
+    // Common .lang file entries
+    'join': 'unirse',
+    'leave': 'salir',
+    'death': 'muerte',
+    'respawn': 'reaparecer',
+    'chat': 'chat',
+    'command': 'comando',
+    'error': 'error',
+    'success': 'éxito',
+    'warning': 'advertencia',
+    'info': 'información'
   },
   'fr': {
     'Welcome to the server': 'Bienvenue sur le serveur',
@@ -73,7 +85,19 @@ const MOCK_TRANSLATIONS: Record<string, Record<string, string>> = {
     'Please wait %time% seconds before using this command again.': 'Veuillez patienter %time% secondes avant d\'utiliser cette commande à nouveau.',
     'Player not found!': 'Joueur introuvable!',
     'Your balance: $%balance%': 'Votre solde: $%balance%',
-    'Available destinations: %count%': 'Destinations disponibles: %count%'
+    'Available destinations: %count%': 'Destinations disponibles: %count%',
+    
+    // Common .lang file entries
+    'join': 'rejoindre',
+    'leave': 'quitter',
+    'death': 'mort',
+    'respawn': 'réapparaître',
+    'chat': 'chat',
+    'command': 'commande',
+    'error': 'erreur',
+    'success': 'succès',
+    'warning': 'avertissement',
+    'info': 'information'
   },
   'de': {
     'Welcome to the server': 'Willkommen auf dem Server',
@@ -108,7 +132,19 @@ const MOCK_TRANSLATIONS: Record<string, Record<string, string>> = {
     'Please wait %time% seconds before using this command again.': 'Bitte warte %time% Sekunden bevor du diesen Befehl erneut verwendest.',
     'Player not found!': 'Spieler nicht gefunden!',
     'Your balance: $%balance%': 'Dein Guthaben: $%balance%',
-    'Available destinations: %count%': 'Verfügbare Ziele: %count%'
+    'Available destinations: %count%': 'Verfügbare Ziele: %count%',
+    
+    // Common .lang file entries
+    'join': 'beitreten',
+    'leave': 'verlassen',
+    'death': 'tod',
+    'respawn': 'wiedergeburt',
+    'chat': 'chat',
+    'command': 'befehl',
+    'error': 'fehler',
+    'success': 'erfolg',
+    'warning': 'warnung',
+    'info': 'information'
   },
   'zh': {
     'Welcome to the server': '欢迎来到服务器',
@@ -143,7 +179,19 @@ const MOCK_TRANSLATIONS: Record<string, Record<string, string>> = {
     'Please wait %time% seconds before using this command again.': '请等待 %time% 秒后才能再次使用此命令。',
     'Player not found!': '找不到玩家！',
     'Your balance: $%balance%': '你的余额：$%balance%',
-    'Available destinations: %count%': '可用目的地：%count%'
+    'Available destinations: %count%': '可用目的地：%count%',
+    
+    // Common .lang file entries
+    'join': '加入',
+    'leave': '离开',
+    'death': '死亡',
+    'respawn': '重生',
+    'chat': '聊天',
+    'command': '命令',
+    'error': '错误',
+    'success': '成功',
+    'warning': '警告',
+    'info': '信息'
   },
   'it': {
     'Welcome to the server': 'Benvenuto nel server',
@@ -178,7 +226,19 @@ const MOCK_TRANSLATIONS: Record<string, Record<string, string>> = {
     'Please wait %time% seconds before using this command again.': 'Aspetta %time% secondi prima di usare questo comando di nuovo.',
     'Player not found!': 'Giocatore non trovato!',
     'Your balance: $%balance%': 'Il tuo saldo: $%balance%',
-    'Available destinations: %count%': 'Destinazioni disponibili: %count%'
+    'Available destinations: %count%': 'Destinazioni disponibili: %count%',
+    
+    // Common .lang file entries
+    'join': 'unisciti',
+    'leave': 'lascia',
+    'death': 'morte',
+    'respawn': 'rinascita',
+    'chat': 'chat',
+    'command': 'comando',
+    'error': 'errore',
+    'success': 'successo',
+    'warning': 'avvertimento',
+    'info': 'informazione'
   }
 }
 

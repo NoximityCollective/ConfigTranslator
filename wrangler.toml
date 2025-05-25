@@ -12,13 +12,13 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "configtranslator-db"
-database_id = "YOUR_D1_DATABASE_ID_HERE"
+database_id = "3ed4ae1d-8bbc-45bd-a0ba-89374f7399fc"
 
 # KV Namespace binding for rate limiting
 # Replace 'id' with your own KV namespace ID
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "YOUR_KV_NAMESPACE_ID_HERE"
+id = "1d4d5e34ffad418ba5c26888b3c2def9"
 
 # Environment variables for local development
 [vars]

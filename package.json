@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "dev:cf": "wrangler pages dev --d1 DB=configtranslator-db --kv RATE_LIMIT_KV=YOUR_KV_NAMESPACE_ID_HERE",
+    "dev:cf": "wrangler pages dev --d1 DB=configtranslator-db --kv RATE_LIMIT_KV=1d4d5e34ffad418ba5c26888b3c2def9",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

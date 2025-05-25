@@ -188,3 +188,4 @@ temp/
 
 # Bun
 .bun
+wrangler.local.toml

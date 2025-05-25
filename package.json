@@ -7,11 +7,11 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "dev:cf": "wrangler pages dev --d1 DB=configtranslator-db --kv RATE_LIMIT_KV=1d4d5e34ffad418ba5c26888b3c2def9",
+    "dev:cf": "wrangler pages dev --config wrangler.local.toml",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "npm run build && wrangler pages deploy .next --project-name configtranslator",
+    "deploy": "npm run build && wrangler pages deploy .next --config wrangler.local.toml --project-name configtranslator",
     "setup:db": "wrangler d1 execute configtranslator-db --file=./schema.sql --remote",
     "setup:local-db": "wrangler d1 execute configtranslator-db --file=./schema.sql",
     "setup:secrets": "echo 'Run: wrangler secret put OPENROUTER_API_KEY' && echo 'Run: wrangler secret put IP_HASH_SALT'",

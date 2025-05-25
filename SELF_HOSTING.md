@@ -52,7 +52,14 @@ wrangler d1 execute configtranslator-db --file=./schema.sql --remote
 
 ### Step 4: Configure wrangler.toml
 
-Edit `wrangler.toml` and replace the placeholder IDs:
+**Important**: Never commit your actual resource IDs to git! Create a local configuration file:
+
+```bash
+# Copy the template
+cp wrangler.toml wrangler.local.toml
+
+# Edit wrangler.local.toml and replace the placeholder IDs:
+```
 
 ```toml
 # Replace with your actual IDs from Step 3
@@ -64,7 +71,13 @@ database_id = "YOUR_D1_DATABASE_ID_HERE"  # ← Replace this
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
 id = "YOUR_KV_NAMESPACE_ID_HERE"  # ← Replace this
+
+# Also update your site URL
+[vars]
+NEXT_PUBLIC_SITE_URL = "https://your-project-name.pages.dev"
 ```
+
+**Note**: `wrangler.local.toml` is in `.gitignore` and won't be committed to your repository.
 
 ### Step 5: Deploy to Cloudflare Pages
 

@@ -43,6 +43,15 @@ export function Footer() {
                   Support Us
                 </a>
               </div>
+              <div>
+                <a 
+                  href="mailto:business@noximity.com"
+                  className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                >
+                  <Globe className="h-4 w-4" />
+                  Contact
+                </a>
+              </div>
 
             </div>
           </div>

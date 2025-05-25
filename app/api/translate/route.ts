@@ -182,7 +182,7 @@ export async function GET(request: NextRequest) {
     },
     translationStats,
     rateLimiter: {
-      clientId: clientId.substring(0, 20) + '...', // Hashed ID for privacy
+      clientId: typeof clientId === 'string' ? clientId.substring(0, 20) + '...' : 'unknown', // Hashed ID for privacy
       currentStatus: {
         allowed: rateLimitStatus.allowed,
         remaining: rateLimitStatus.remaining,
@@ -227,14 +227,14 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('Rate limit check:', {
-      clientId: clientId.substring(0, 20) + '...', // Log partial hashed ID for privacy
+      clientId: typeof clientId === 'string' ? clientId.substring(0, 20) + '...' : 'unknown', // Log partial hashed ID for privacy
       allowed: rateLimitResult.allowed,
       remaining: rateLimitResult.remaining
     })
     
     if (!rateLimitResult.allowed) {
       const resetDate = new Date(rateLimitResult.resetTime)
-      console.log('Rate limit exceeded for client:', clientId.substring(0, 20) + '...')
+      console.log('Rate limit exceeded for client:', typeof clientId === 'string' ? clientId.substring(0, 20) + '...' : 'unknown')
       return NextResponse.json(
         { 
           error: 'Rate limit exceeded. You can make 10 translations per hour.',

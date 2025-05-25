@@ -152,18 +152,30 @@ import { getRealIPAddress, createIPKey, sanitizeIPForLogging } from './ip-utils'
 
 // Helper function to get hashed client identifier from Edge Runtime request
 export async function getClientIdentifier(request: Request): Promise<string> {
-  // Get the real IP address
-  const realIP = getRealIPAddress(request)
-  
-  // Create a hashed identifier for privacy
-  const hashedIP = await createIPKey(realIP)
-  
-  // Log sanitized IP for debugging (optional)
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`Client IP: ${sanitizeIPForLogging(realIP)} -> Hash: ${hashedIP}`)
+  try {
+    // Get the real IP address
+    const realIP = getRealIPAddress(request)
+    
+    // Create a hashed identifier for privacy
+    const hashedIP = await createIPKey(realIP)
+    
+    // Ensure we always return a string
+    if (typeof hashedIP !== 'string' || hashedIP.length === 0) {
+      console.warn('Invalid hashed IP generated, using fallback')
+      return 'fallback-' + Date.now().toString(36)
+    }
+    
+    // Log sanitized IP for debugging (optional)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Client IP: ${sanitizeIPForLogging(realIP)} -> Hash: ${hashedIP}`)
+    }
+    
+    return hashedIP
+  } catch (error) {
+    console.error('Error generating client identifier:', error)
+    // Return a fallback identifier
+    return 'error-fallback-' + Date.now().toString(36)
   }
-  
-  return hashedIP
 }
 
 // Legacy synchronous function for backward compatibility

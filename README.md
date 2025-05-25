@@ -60,9 +60,9 @@ ConfigTranslator is a **free, AI-powered web application** that intelligently tr
 - 🇪🇸 Spanish • 🇸🇮 Slovenian • 🇩🇪 German • 🇮🇹 Italian
 
 ### 🛡️ **Smart Protection**
-- Rate limiting (10 translations/hour)
 - File size limits (100KB max)
 - Secure server-side API calls
+- Input validation and sanitization
 
 ### 🎛️ **Modern Interface**
 - Dark/Light theme support
@@ -167,7 +167,7 @@ graph LR
 | Frontend | Backend | AI & APIs | Styling | Tools |
 |----------|---------|-----------|---------|-------|
 | ![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js) | ![API Routes](https://img.shields.io/badge/API-Routes-green?style=flat-square) | ![OpenRouter](https://img.shields.io/badge/OpenRouter-API-purple?style=flat-square) | ![Tailwind](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=flat-square&logo=tailwind-css) | ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript) |
-| ![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react) | ![Rate Limiting](https://img.shields.io/badge/Rate-Limiting-orange?style=flat-square) | ![GPT-4o-mini](https://img.shields.io/badge/GPT--4o--mini-AI-FF6B6B?style=flat-square) | ![shadcn/ui](https://img.shields.io/badge/shadcn-ui-black?style=flat-square) | ![ESLint](https://img.shields.io/badge/ESLint-Configured-4B32C3?style=flat-square&logo=eslint) |
+| ![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react) | ![Edge Runtime](https://img.shields.io/badge/Edge-Runtime-orange?style=flat-square) | ![GPT-4o-mini](https://img.shields.io/badge/GPT--4o--mini-AI-FF6B6B?style=flat-square) | ![shadcn/ui](https://img.shields.io/badge/shadcn-ui-black?style=flat-square) | ![ESLint](https://img.shields.io/badge/ESLint-Configured-4B32C3?style=flat-square&logo=eslint) |
 
 </div>
 
@@ -177,7 +177,7 @@ graph LR
 
 | Feature | Free Tier | Notes |
 |---------|-----------|-------|
-| **Translations** | 10 per hour | Resets every hour |
+| **Translations** | Unlimited | No rate limits |
 | **File Size** | 100KB max | Sufficient for most configs |
 | **Languages** | 7 supported | More coming soon |
 | **File Types** | 6 formats | YAML, JSON, Properties, etc. |

@@ -235,7 +235,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🔗 Links
 
-- **📧 Contact**: [business@noximity.com](mailto:business@noximity.com)
+- **📧 Contact**: [hello@noximity.com](mailto:hello@noximity.com)
 - **🐙 GitHub**: [@NoximityCollective](https://github.com/NoximityCollective)
 - **☕ Support**: [Ko-fi](https://ko-fi.com/noximitycollective)
 

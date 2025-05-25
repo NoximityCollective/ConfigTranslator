@@ -1,71 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Language } from '@/lib/types'
 import { rateLimiter, getClientIdentifier } from '@/lib/rate-limiter'
-import { d1Service, initializeD1Service, isLocalDevelopment } from '@/lib/d1-service'
-import { kvRateLimiter, initializeKVRateLimiter } from '@/lib/kv-rate-limiter'
 
 // Configure Edge Runtime for Cloudflare Pages compatibility
 export const runtime = 'edge'
 
-// Extend global type for local development counter
-declare global {
-  var localTranslationCounter: number | undefined
-}
-
 const MAX_FILE_SIZE = 100 * 1024 // 100KB limit
-const MAX_CHUNK_LINES = 150 // Reduced for better quality and context preservation
+const MAX_CHUNK_LINES = 200 // Process files in chunks of 200 lines to avoid token limits
 
-// Function to split content into manageable chunks with smart boundaries
+// Function to split content into manageable chunks
 function splitIntoChunks(content: string, maxLines: number): string[] {
   const lines = content.split('\n')
   const chunks: string[] = []
   
-  let currentChunk: string[] = []
-  let currentLineCount = 0
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    currentChunk.push(line)
-    currentLineCount++
-    
-    // Check if we should split here
-    if (currentLineCount >= maxLines) {
-      // Try to find a good breaking point (empty line, comment, or section boundary)
-      let splitIndex = currentChunk.length
-      
-      // Look for a good breaking point in the last 20 lines
-      for (let j = Math.max(0, currentChunk.length - 20); j < currentChunk.length; j++) {
-        const checkLine = currentChunk[j].trim()
-        if (checkLine === '' || 
-            checkLine.startsWith('#') || 
-            checkLine.startsWith('//') ||
-            checkLine.match(/^[a-zA-Z0-9_-]+:$/) || // YAML section
-            checkLine === '}' || checkLine === '{' || // JSON boundaries
-            checkLine.startsWith('[') && checkLine.endsWith(']')) { // Properties sections
-          splitIndex = j + 1
-          break
-        }
-      }
-      
-      // Create chunk and prepare for next
-      if (splitIndex < currentChunk.length) {
-        chunks.push(currentChunk.slice(0, splitIndex).join('\n'))
-        currentChunk = currentChunk.slice(splitIndex)
-        currentLineCount = currentChunk.length
-      } else {
-        chunks.push(currentChunk.join('\n'))
-        currentChunk = []
-        currentLineCount = 0
-      }
-    }
+  for (let i = 0; i < lines.length; i += maxLines) {
+    const chunk = lines.slice(i, i + maxLines).join('\n')
+    chunks.push(chunk)
   }
   
-  // Add remaining lines as final chunk
-  if (currentChunk.length > 0) {
-    chunks.push(currentChunk.join('\n'))
-  }
-  
-  return chunks.filter(chunk => chunk.trim().length > 0)
+  return chunks
 }
 
 // Function to translate a single chunk
@@ -74,34 +27,26 @@ async function translateChunk(
   targetLanguage: any, 
   apiKey: string, 
   chunkIndex: number, 
-  totalChunks: number,
-  fileName: string
+  totalChunks: number
 ): Promise<string> {
-  const fileType = fileName.split('.').pop()?.toLowerCase() || 'config'
-  
-  const prompt = `You are a professional translator specializing in Minecraft plugin configuration files.
+  const prompt = `You are a professional translator specializing in Minecraft plugin configuration files. 
 
-CRITICAL TRANSLATION RULES:
-1. ONLY translate human-readable text content (messages, descriptions, lore text, etc.)
-2. PRESERVE ALL technical elements EXACTLY:
-   - MiniMessage color codes: <red>, <green>, <gradient:blue:purple>, <#FF0000>
-   - Placeholders: %player%, %time%, %balance%, %count%, {player}, etc.
-   - YAML/JSON structure, keys, and formatting
-   - Configuration keys, file paths, technical identifiers
-   - Boolean/numeric values (true, false, numbers)
-   - Comments and their formatting
-3. Maintain consistent terminology throughout all chunks
-4. This is chunk ${chunkIndex + 1} of ${totalChunks} from a ${fileType} file
+IMPORTANT RULES:
+1. ONLY translate human-readable text content (messages, descriptions, etc.)
+2. PRESERVE all MiniMessage color codes exactly as they are (e.g., <red>, <green>, <gradient:blue:purple>, <#FF0000>)
+3. PRESERVE all placeholders exactly as they are (e.g., %player%, %time%, %balance%, %count%)
+4. PRESERVE all YAML/JSON structure, keys, technical values, and formatting
+5. DO NOT translate configuration keys, file paths, technical identifiers, or boolean/numeric values
+6. PRESERVE all comments and their formatting
+7. This is chunk ${chunkIndex + 1} of ${totalChunks} - maintain consistency with previous translations
 
-CONTEXT: This is part of a larger Minecraft plugin configuration file. Maintain consistency with standard Minecraft terminology in ${targetLanguage.name}.
-
-File chunk to translate:
+Translate the following Minecraft plugin configuration file chunk to ${targetLanguage.name} (${targetLanguage.code}):
 
 \`\`\`
 ${chunk}
 \`\`\`
 
-Return ONLY the translated chunk with identical structure and formatting. Do not add explanations or modify the format.`
+Return ONLY the translated configuration chunk with the same exact structure and formatting.`
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -119,8 +64,8 @@ Return ONLY the translated chunk with identical structure and formatting. Do not
             content: prompt
           }
         ],
-        temperature: 0.2, // Lower temperature for more consistent translations
-        max_tokens: 16000, // Optimized for chunk size
+        temperature: 0.3,
+        max_tokens: 30000, // Increased for better chunk handling
       }),
   })
 
@@ -142,42 +87,9 @@ Return ONLY the translated chunk with identical structure and formatting. Do not
 
 // Simple GET endpoint to test if the API route is working
 export async function GET(request: NextRequest) {
-  // Initialize services if available
-  if (!d1Service && (request as any).env?.DB) {
-    initializeD1Service((request as any).env.DB)
-  }
-  if (!kvRateLimiter && (request as any).env?.RATE_LIMIT_KV) {
-    initializeKVRateLimiter((request as any).env.RATE_LIMIT_KV)
-  }
-
-  const clientId = await getClientIdentifier(request)
-  const isLocalDev = isLocalDevelopment()
-  
-  // Get rate limit status
-  let rateLimitStatus
-  if (kvRateLimiter && !isLocalDev) {
-    rateLimitStatus = await kvRateLimiter.peekRateLimit(clientId)
-  } else {
-    // Fallback to in-memory rate limiter for local dev or if KV not available
-    rateLimitStatus = rateLimiter.peek(clientId)
-  }
-
-  // Get translation counter
-  let translationStats = { totalTranslations: 0, lastUpdated: new Date().toISOString() }
-  if (d1Service) {
-    try {
-      translationStats = await d1Service.getTranslationCounter()
-    } catch (error) {
-      console.error('Error getting translation stats:', error)
-    }
-  } else if (isLocalDev) {
-    // For local development, return the in-memory counter
-    const localCount = global.localTranslationCounter || 0
-    translationStats = {
-      totalTranslations: localCount,
-      lastUpdated: new Date().toISOString()
-    }
-  }
+  const clientId = getClientIdentifier(request)
+  const rateLimitStats = rateLimiter.getStats()
+  const currentStatus = rateLimiter.check(clientId, false) // Don't consume a request for status check
   
   return NextResponse.json({
     status: 'API route is working',
@@ -188,34 +100,18 @@ export async function GET(request: NextRequest) {
       siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
       siteName: process.env.NEXT_PUBLIC_SITE_NAME,
       nodeEnv: process.env.NODE_ENV,
-      isLocalDev,
-      hasD1: !!d1Service,
-      hasKV: !!kvRateLimiter
+      isLocalDev: currentStatus.remaining === 999
     },
-    translationStats,
     rateLimiter: {
-      clientId: typeof clientId === 'string' ? clientId.substring(0, 20) + '...' : 'unknown', // Hashed ID for privacy
-      currentStatus: {
-        allowed: rateLimitStatus.allowed,
-        remaining: rateLimitStatus.remaining,
-        resetTime: rateLimitStatus.resetTime
-      }
+      clientId: clientId.substring(0, 20) + '...',
+      stats: rateLimitStats,
+      currentStatus: currentStatus
     }
   })
 }
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now()
-  
   try {
-    // Initialize services if available
-    if (!d1Service && (request as any).env?.DB) {
-      initializeD1Service((request as any).env.DB)
-    }
-    if (!kvRateLimiter && (request as any).env?.RATE_LIMIT_KV) {
-      initializeKVRateLimiter((request as any).env.RATE_LIMIT_KV)
-    }
-
     console.log('API route called - parsing request body...')
     const { content, targetLanguage, fileName } = await request.json()
 
@@ -227,26 +123,18 @@ export async function POST(request: NextRequest) {
     })
 
     // Rate limiting check
-    const clientId = await getClientIdentifier(request)
-    const isLocalDev = isLocalDevelopment()
-    
-    let rateLimitResult
-    if (kvRateLimiter && !isLocalDev) {
-      rateLimitResult = await kvRateLimiter.checkRateLimit(clientId)
-    } else {
-      // Fallback to in-memory rate limiter for local dev or if KV not available
-      rateLimitResult = rateLimiter.check(clientId)
-    }
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = rateLimiter.check(clientId)
     
     console.log('Rate limit check:', {
-      clientId: typeof clientId === 'string' ? clientId.substring(0, 20) + '...' : 'unknown', // Log partial hashed ID for privacy
+      clientId: clientId.substring(0, 20) + '...', // Log partial ID for privacy
       allowed: rateLimitResult.allowed,
       remaining: rateLimitResult.remaining
     })
     
     if (!rateLimitResult.allowed) {
       const resetDate = new Date(rateLimitResult.resetTime)
-      console.log('Rate limit exceeded for client:', typeof clientId === 'string' ? clientId.substring(0, 20) + '...' : 'unknown')
+      console.log('Rate limit exceeded for client:', clientId.substring(0, 20) + '...')
       return NextResponse.json(
         { 
           error: 'Rate limit exceeded. You can make 10 translations per hour.',
@@ -321,47 +209,25 @@ export async function POST(request: NextRequest) {
       
       const translatedChunks: string[] = []
       
-      // Process each chunk with retry logic
+      // Process each chunk
       for (let i = 0; i < chunks.length; i++) {
         console.log(`Translating chunk ${i + 1}/${chunks.length}...`)
-        
-        let retryCount = 0
-        const maxRetries = 2
-        let translatedChunk: string | null = null
-        
-        while (retryCount <= maxRetries && !translatedChunk) {
-          try {
-            translatedChunk = await translateChunk(chunks[i], targetLanguage, apiKey, i, chunks.length, fileName)
-            console.log(`Chunk ${i + 1} completed successfully${retryCount > 0 ? ` (retry ${retryCount})` : ''}`)
-          } catch (error) {
-            retryCount++
-            console.error(`Error translating chunk ${i + 1} (attempt ${retryCount}):`, error)
-            
-            if (retryCount > maxRetries) {
-              return NextResponse.json(
-                { error: `Failed to translate chunk ${i + 1} after ${maxRetries + 1} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`, useMockTranslation: true },
-                { status: 500 }
-              )
-            }
-            
-            // Wait a bit before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
-          }
-        }
-        
-        if (translatedChunk) {
+        try {
+          const translatedChunk = await translateChunk(chunks[i], targetLanguage, apiKey, i, chunks.length)
           translatedChunks.push(translatedChunk)
+          console.log(`Chunk ${i + 1} completed successfully`)
+        } catch (error) {
+          console.error(`Error translating chunk ${i + 1}:`, error)
+          return NextResponse.json(
+            { error: `Failed to translate chunk ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`, useMockTranslation: true },
+            { status: 500 }
+          )
         }
       }
       
-      // Combine all translated chunks with smart joining
-      translatedContent = translatedChunks
-        .map(chunk => chunk.trim()) // Remove extra whitespace
-        .filter(chunk => chunk.length > 0) // Remove empty chunks
-        .join('\n')
-      
+      // Combine all translated chunks
+      translatedContent = translatedChunks.join('\n')
       console.log('All chunks processed successfully')
-      console.log(`Combined ${translatedChunks.length} chunks into final result`)
       
     } else {
       console.log('Processing small file as single request...')
@@ -446,42 +312,10 @@ Return ONLY the translated configuration file with the same exact structure and 
 
     // Final cleanup
     const cleanedContent = translatedContent
-    const processingTime = Date.now() - startTime
-
-    // Increment translation counter and log translation
-    let totalTranslations = 0
-    if (d1Service) {
-      try {
-        totalTranslations = await d1Service.incrementTranslationCounter()
-        
-        // Log translation details
-        await d1Service.logTranslation({
-          hashedIPAddress: clientId,
-          targetLanguage: targetLanguage.code,
-          fileType: fileName.split('.').pop()?.toLowerCase(),
-          fileSize: new Blob([content]).size,
-          linesCount: content.split('\n').length,
-          success: true,
-          processingTime
-        })
-      } catch (error) {
-        console.error('Error updating translation stats:', error)
-      }
-    } else if (isLocalDev) {
-      // For local development, use a simple in-memory counter
-      // This will reset when the server restarts, but it's better than showing 0
-      if (!global.localTranslationCounter) {
-        global.localTranslationCounter = 0
-      }
-      global.localTranslationCounter++
-      totalTranslations = global.localTranslationCounter
-      console.log(`Local dev translation counter: ${totalTranslations}`)
-    }
 
     return NextResponse.json({
       translatedContent: cleanedContent,
-      success: true,
-      totalTranslations: totalTranslations
+      success: true
     }, {
       headers: {
         'X-RateLimit-Limit': '10',

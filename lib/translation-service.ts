@@ -356,7 +356,7 @@ export class TranslationService {
     content: string,
     targetLanguage: Language,
     fileName: string
-  ): Promise<TranslationResult & { rateLimitInfo?: { remaining: number; limit: number; resetTime?: number }; totalTranslations?: number }> {
+  ): Promise<TranslationResult & { rateLimitInfo?: { remaining: number; limit: number; resetTime?: number } }> {
     const startTime = Date.now()
 
     if (!this.validateFileSize(content)) {
@@ -366,14 +366,12 @@ export class TranslationService {
     try {
       let translatedContent: string
       let rateLimitInfo: { remaining: number; limit: number; resetTime?: number } | undefined
-      let totalTranslations: number | undefined
 
       // Try AI translation via API route first
       try {
         const aiResult = await this.aiTranslate(content, targetLanguage, fileName)
         translatedContent = aiResult.content
         rateLimitInfo = aiResult.rateLimitInfo
-        totalTranslations = aiResult.totalTranslations
       } catch (error: any) {
         // If API translation fails, fall back to mock translation
         console.warn('AI translation failed, using mock translation:', error.message)
@@ -387,8 +385,7 @@ export class TranslationService {
         translatedContent,
         stats,
         targetLanguage,
-        rateLimitInfo,
-        totalTranslations
+        rateLimitInfo
       }
     } catch (error) {
       console.error('Translation error:', error)
@@ -396,7 +393,7 @@ export class TranslationService {
     }
   }
 
-  private static async aiTranslate(content: string, targetLanguage: Language, fileName: string): Promise<{ content: string; rateLimitInfo?: { remaining: number; limit: number; resetTime?: number }; totalTranslations?: number }> {
+  private static async aiTranslate(content: string, targetLanguage: Language, fileName: string): Promise<{ content: string; rateLimitInfo?: { remaining: number; limit: number; resetTime?: number } }> {
     const response = await fetch('/api/translate', {
       method: 'POST',
       headers: {
@@ -435,7 +432,7 @@ export class TranslationService {
       throw new Error('No translation received from API')
     }
 
-    return { content: data.translatedContent, rateLimitInfo, totalTranslations: data.totalTranslations }
+    return { content: data.translatedContent, rateLimitInfo }
   }
 
   private static mockTranslate(content: string, targetLanguage: Language): string {

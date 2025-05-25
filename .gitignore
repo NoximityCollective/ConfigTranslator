@@ -12,9 +12,6 @@
 # Next.js
 /.next/
 /out/
-# Next.js cache (can be very large)
-/.next/cache/
-.next/cache/
 
 # Production
 /build
@@ -30,14 +27,6 @@ yarn-error.log*
 
 # Local env files
 .env*.local
-.env
-
-# Self-hosting generated files
-DEPLOYMENT_INFO.md
-temp_*.txt
-
-# Wrangler local state
-.wrangler/
 .env.local
 .env.development.local
 .env.test.local
@@ -191,4 +180,3 @@ temp/
 
 # Bun
 .bun
-wrangler.local.toml

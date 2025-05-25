@@ -16,9 +16,7 @@ class EdgeRateLimiter {
     this.windowMs = windowMs
   }
 
-  check(identifier: string): { allowed: boolean; remaining: number; resetTime: number } {
-    const now = Date.now()
-    
+  check(identifier: string, consume: boolean = true): { allowed: boolean; remaining: number; resetTime: number } {
     // Check if we're in local development (unlimited rate limit)
     const isLocalDev = this.isLocalDevelopment()
     
@@ -26,10 +24,11 @@ class EdgeRateLimiter {
       return {
         allowed: true,
         remaining: 999, // Show high number for local dev
-        resetTime: now + this.windowMs
+        resetTime: Date.now() + this.windowMs
       }
     }
 
+    const now = Date.now()
     const entry = this.requests.get(identifier)
 
     // Clean up expired entries
@@ -38,11 +37,20 @@ class EdgeRateLimiter {
     if (!entry || now > entry.resetTime) {
       // First request or window expired
       const resetTime = now + this.windowMs
-      this.requests.set(identifier, { count: 1, resetTime })
-      return {
-        allowed: true,
-        remaining: this.maxRequests - 1,
-        resetTime
+      if (consume) {
+        this.requests.set(identifier, { count: 1, resetTime })
+        return {
+          allowed: true,
+          remaining: this.maxRequests - 1,
+          resetTime
+        }
+      } else {
+        // Just checking status, don't consume
+        return {
+          allowed: true,
+          remaining: this.maxRequests,
+          resetTime
+        }
       }
     }
 
@@ -55,9 +63,11 @@ class EdgeRateLimiter {
       }
     }
 
-    // Increment count
-    entry.count++
-    this.requests.set(identifier, entry)
+    if (consume) {
+      // Increment count
+      entry.count++
+      this.requests.set(identifier, entry)
+    }
 
     return {
       allowed: true,
@@ -76,6 +86,7 @@ class EdgeRateLimiter {
       siteUrl.includes('localhost') ||
       siteUrl.includes('127.0.0.1') ||
       siteUrl.includes('3000') ||
+      !siteUrl || // No site URL set (likely local)
       siteUrl === 'http://localhost:3000'
     )
   }
@@ -86,52 +97,6 @@ class EdgeRateLimiter {
       if (now > entry.resetTime) {
         this.requests.delete(key)
       }
-    }
-  }
-
-  // Get current status without consuming rate limit
-  peek(identifier: string): { allowed: boolean; remaining: number; resetTime: number } {
-    const now = Date.now()
-    
-    // Check if we're in local development (unlimited rate limit)
-    const isLocalDev = this.isLocalDevelopment()
-    
-    if (isLocalDev) {
-      return {
-        allowed: true,
-        remaining: 999, // Show high number for local dev
-        resetTime: now + this.windowMs
-      }
-    }
-
-    const entry = this.requests.get(identifier)
-
-    // Clean up expired entries
-    this.cleanup(now)
-
-    if (!entry || now > entry.resetTime) {
-      // First request or window expired - would have full limit available
-      return {
-        allowed: true,
-        remaining: this.maxRequests,
-        resetTime: now + this.windowMs
-      }
-    }
-
-    if (entry.count >= this.maxRequests) {
-      // Rate limit exceeded
-      return {
-        allowed: false,
-        remaining: 0,
-        resetTime: entry.resetTime
-      }
-    }
-
-    // Return current status without incrementing
-    return {
-      allowed: true,
-      remaining: this.maxRequests - entry.count,
-      resetTime: entry.resetTime
     }
   }
 
@@ -148,38 +113,8 @@ class EdgeRateLimiter {
 // Create a singleton instance
 export const rateLimiter = new EdgeRateLimiter()
 
-import { getRealIPAddress, createIPKey, sanitizeIPForLogging } from './ip-utils'
-
-// Helper function to get hashed client identifier from Edge Runtime request
-export async function getClientIdentifier(request: Request): Promise<string> {
-  try {
-    // Get the real IP address
-    const realIP = getRealIPAddress(request)
-    
-    // Create a hashed identifier for privacy
-    const hashedIP = await createIPKey(realIP)
-    
-    // Ensure we always return a string
-    if (typeof hashedIP !== 'string' || hashedIP.length === 0) {
-      console.warn('Invalid hashed IP generated, using fallback')
-      return 'fallback-' + Date.now().toString(36)
-    }
-    
-    // Log sanitized IP for debugging (optional)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`Client IP: ${sanitizeIPForLogging(realIP)} -> Hash: ${hashedIP}`)
-    }
-    
-    return hashedIP
-  } catch (error) {
-    console.error('Error generating client identifier:', error)
-    // Return a fallback identifier
-    return 'error-fallback-' + Date.now().toString(36)
-  }
-}
-
-// Legacy synchronous function for backward compatibility
-export function getClientIdentifierSync(request: Request): string {
+// Helper function to get client identifier from Edge Runtime request
+export function getClientIdentifier(request: Request): string {
   // Try to get real IP from Cloudflare headers
   const cfConnectingIp = request.headers.get('cf-connecting-ip')
   const xForwardedFor = request.headers.get('x-forwarded-for')

@@ -110,49 +110,6 @@ Open [http://localhost:3000](http://localhost:3000) and start translating! 🎉
 
 ---
 
-## 🏠 Self-Hosting
-
-Want to deploy your own ConfigTranslator instance? It's easy!
-
-### 🚀 Quick Self-Hosting (5 minutes)
-
-```bash
-# 1. Fork and clone the repository
-git clone https://github.com/YOUR_USERNAME/configtranslator.git
-cd configtranslator
-
-# 2. Install dependencies
-npm install
-
-# 3. Run the automated setup script
-chmod +x scripts/setup.sh
-./scripts/setup.sh
-
-# 4. Add your OpenRouter API key to .env.local
-# 5. Deploy to Cloudflare Pages
-npm run deploy
-```
-
-### 📖 Detailed Guide
-
-See **[SELF_HOSTING.md](./SELF_HOSTING.md)** for complete instructions including:
-- Step-by-step setup process
-- Cloudflare Pages configuration
-- Custom domain setup
-- Advanced configuration options
-- Monitoring and management
-- Troubleshooting guide
-
-### 🎯 Why Self-Host?
-
-- **🔒 Full Control**: Your data, your rules
-- **⚡ Unlimited Usage**: No rate limits for your instance
-- **🎨 Customization**: Modify features to your needs
-- **💰 Cost Effective**: Cloudflare's generous free tier
-- **🌍 Global CDN**: Fast worldwide performance
-
----
-
 ## ⚙️ Configuration
 
 ### Environment Variables
@@ -206,31 +163,6 @@ graph LR
    - Placeholders like `%player%`, `%time%`
    - Comments and technical identifiers
 5. **Download** or copy the translated result
-
----
-
-## 🗄️ Database & Storage Integration
-
-ConfigTranslator uses **Cloudflare D1** and **KV** for persistent data storage:
-
-### Cloudflare D1 (Database)
-- **Translation Counter**: Global count of all translations performed
-- **Analytics**: Detailed translation history and statistics
-- **Local Development**: Unlimited translations when running locally
-
-### Cloudflare KV (Key-Value Storage)
-- **Rate Limiting**: Fast IP-based rate limiting (10 translations per hour)
-- **Automatic Expiration**: Rate limits automatically expire after 1 hour
-- **High Performance**: Optimized for frequent read/write operations
-
-### Setup Instructions
-
-1. **D1 Database**: `wrangler d1 create configtranslator-db`
-2. **KV Namespace**: `wrangler kv:namespace create "RATE_LIMIT_KV"`
-3. **Apply Schema**: `wrangler d1 execute configtranslator-db --file=./schema.sql`
-4. **Bind to Pages**: Add `DB` and `RATE_LIMIT_KV` bindings
-
-See `CLOUDFLARE_SETUP.md` for detailed setup instructions and `schema.sql` for the database structure.
 
 ---
 

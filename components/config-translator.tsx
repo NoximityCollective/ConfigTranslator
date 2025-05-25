@@ -25,42 +25,37 @@ export function ConfigTranslator() {
   const [progress, setProgress] = useState(0)
   const [copied, setCopied] = useState(false)
   const [rateLimitInfo, setRateLimitInfo] = useState<{ remaining: number; limit: number; resetTime?: number } | null>(null)
-  const [translationStats, setTranslationStats] = useState<{ totalTranslations: number; lastUpdated: string } | null>(null)
 
   const { toast } = useToast()
 
-  // Function to refresh translation stats and rate limit info
-  const refreshStats = useCallback(async () => {
-    try {
-      const response = await fetch('/api/translate')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.rateLimiter?.currentStatus) {
-          setRateLimitInfo({
-            remaining: data.rateLimiter.currentStatus.remaining,
-            limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10, // Handle local dev
-            resetTime: data.rateLimiter.currentStatus.resetTime
-          })
-        }
-        if (data.translationStats) {
-          setTranslationStats(data.translationStats)
-        }
-      }
-    } catch (error) {
-      console.log('Could not check rate limit status:', error)
-    }
-  }, [])
-
   // Check rate limit status on component mount and periodically refresh
   useEffect(() => {
+    const checkRateLimit = async () => {
+      try {
+        const response = await fetch('/api/translate')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.rateLimiter?.currentStatus) {
+            setRateLimitInfo({
+              remaining: data.rateLimiter.currentStatus.remaining,
+              limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10, // Handle local dev unlimited
+              resetTime: data.rateLimiter.currentStatus.resetTime
+            })
+          }
+        }
+      } catch (error) {
+        console.log('Could not check rate limit status:', error)
+      }
+    }
+    
     // Initial check
-    refreshStats()
+    checkRateLimit()
     
     // Refresh every 30 seconds for better UX
-    const interval = setInterval(refreshStats, 30000)
+    const interval = setInterval(checkRateLimit, 30000)
     
     return () => clearInterval(interval)
-  }, [refreshStats])
+  }, [])
 
   // Helper function to format reset time
   const formatResetTime = (resetTime: number) => {
@@ -78,8 +73,8 @@ export function ConfigTranslator() {
     return `${seconds}s`
   }
 
-  // Check if rate limited (but not in local dev)
-  const isRateLimited = rateLimitInfo?.remaining === 0 && rateLimitInfo?.limit !== 999
+  // Check if rate limited
+  const isRateLimited = rateLimitInfo?.remaining === 0
 
   // Update countdown timer every second when rate limited
   useEffect(() => {
@@ -89,7 +84,24 @@ export function ConfigTranslator() {
       const now = Date.now()
       if (now >= rateLimitInfo.resetTime!) {
         // Rate limit has expired, refresh the status
-        refreshStats()
+        const checkRateLimit = async () => {
+          try {
+            const response = await fetch('/api/translate')
+            if (response.ok) {
+              const data = await response.json()
+              if (data.rateLimiter?.currentStatus) {
+                setRateLimitInfo({
+                  remaining: data.rateLimiter.currentStatus.remaining,
+                  limit: 10,
+                  resetTime: data.rateLimiter.currentStatus.resetTime
+                })
+              }
+            }
+          } catch (error) {
+            console.log('Could not refresh rate limit status:', error)
+          }
+        }
+        checkRateLimit()
       }
     }, 1000)
 
@@ -165,9 +177,6 @@ export function ConfigTranslator() {
       setTranslationResult(result)
       setProgress(100)
       
-      // Refresh stats immediately after successful translation
-      await refreshStats()
-      
       // Update rate limit info if available
       if (result.rateLimitInfo) {
         setRateLimitInfo(result.rateLimitInfo)
@@ -201,8 +210,25 @@ export function ConfigTranslator() {
     } catch (error) {
       // Check if it's a rate limit error and update the state
       if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
-        // Refresh rate limit status
-        refreshStats()
+        // Try to extract reset time from error message or refresh rate limit status
+        const checkRateLimit = async () => {
+          try {
+            const response = await fetch('/api/translate')
+            if (response.ok) {
+              const data = await response.json()
+              if (data.rateLimiter?.currentStatus) {
+                setRateLimitInfo({
+                  remaining: data.rateLimiter.currentStatus.remaining,
+                  limit: 10,
+                  resetTime: data.rateLimiter.currentStatus.resetTime
+                })
+              }
+            }
+          } catch (error) {
+            console.log('Could not refresh rate limit status:', error)
+          }
+        }
+        checkRateLimit()
       }
       
       toast({
@@ -281,23 +307,11 @@ export function ConfigTranslator() {
         <p className="text-sm text-muted-foreground mt-2">
           🤖 AI-powered translation service with MiniMessage color code support
         </p>
-        {translationStats && (
-          <div className="mt-2">
-            <Badge variant="outline" className="text-xs">
-              📊 {translationStats.totalTranslations.toLocaleString()} translations completed
-            </Badge>
-          </div>
-        )}
         {rateLimitInfo && (
           <div className="mt-3">
-            <Badge variant={
-              rateLimitInfo.remaining === 999 ? "default" : // Local dev
-              rateLimitInfo.remaining === 0 ? "destructive" : 
-              rateLimitInfo.remaining <= 2 ? "destructive" : 
-              rateLimitInfo.remaining <= 5 ? "secondary" : "default"
-            }>
-              {rateLimitInfo.remaining === 999 ? (
-                <>🚀 Local Development - Unlimited translations</>
+            <Badge variant={rateLimitInfo.remaining === 0 ? "destructive" : rateLimitInfo.remaining <= 2 ? "destructive" : rateLimitInfo.remaining <= 5 ? "secondary" : rateLimitInfo.limit === 999 ? "outline" : "default"}>
+              {rateLimitInfo.limit === 999 ? (
+                <>🚀 Unlimited translations (Local Development)</>
               ) : rateLimitInfo.remaining === 0 ? (
                 <>Rate limited - resets in {rateLimitInfo.resetTime ? formatResetTime(rateLimitInfo.resetTime) : 'unknown'}</>
               ) : (
@@ -306,7 +320,29 @@ export function ConfigTranslator() {
             </Badge>
           </div>
         )}
-
+        
+        {/* Debug: Show rate limit status */}
+        <div className="mt-2">
+          <button 
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/translate')
+                const data = await response.json()
+                console.log('Rate limit debug:', data.rateLimiter)
+                const isLocalDev = data.rateLimiter?.currentStatus?.remaining === 999
+                toast({
+                  title: "Rate Limit Debug",
+                  description: `${isLocalDev ? '🚀 Local Dev Mode - ' : ''}Remaining: ${data.rateLimiter?.currentStatus?.remaining || 'Unknown'}, Total entries: ${data.rateLimiter?.stats?.totalEntries || 0}`,
+                })
+              } catch (error) {
+                console.error('Debug error:', error)
+              }
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            🔍 Debug Rate Limit Status
+          </button>
+        </div>
 
         <div className="mt-4">
           <a 
@@ -418,9 +454,9 @@ export function ConfigTranslator() {
                   <span>{progress}%</span>
                 </div>
                 <Progress value={progress} className="w-full" />
-                {configFile && configFile.content.split('\n').length > 150 && (
+                {configFile && configFile.content.split('\n').length > 200 && (
                   <div className="text-xs text-muted-foreground text-center">
-                    Large file detected ({configFile.content.split('\n').length} lines) - processing in optimized chunks for better quality
+                    Large file detected ({configFile.content.split('\n').length} lines) - processing in chunks for better quality
                   </div>
                 )}
               </div>

@@ -254,7 +254,7 @@ export class TranslationService {
     content: string,
     targetLanguage: Language,
     fileName: string
-  ): Promise<TranslationResult> {
+  ): Promise<TranslationResult & { rateLimitInfo?: { remaining: number; limit: number } }> {
     const startTime = Date.now()
 
     if (!this.validateFileSize(content)) {
@@ -263,11 +263,13 @@ export class TranslationService {
 
     try {
       let translatedContent: string
+      let rateLimitInfo: { remaining: number; limit: number } | undefined
 
       // Try AI translation via API route first
       try {
         const aiResult = await this.aiTranslate(content, targetLanguage, fileName)
         translatedContent = aiResult.content
+        rateLimitInfo = aiResult.rateLimitInfo
       } catch (error: any) {
         // If API translation fails, fall back to mock translation
         console.warn('AI translation failed, using mock translation:', error.message)
@@ -280,7 +282,8 @@ export class TranslationService {
       return {
         translatedContent,
         stats,
-        targetLanguage
+        targetLanguage,
+        rateLimitInfo
       }
     } catch (error) {
       console.error('Translation error:', error)
@@ -288,7 +291,7 @@ export class TranslationService {
     }
   }
 
-  private static async aiTranslate(content: string, targetLanguage: Language, fileName: string): Promise<{ content: string }> {
+  private static async aiTranslate(content: string, targetLanguage: Language, fileName: string): Promise<{ content: string; rateLimitInfo?: { remaining: number; limit: number } }> {
     const response = await fetch('/api/translate', {
       method: 'POST',
       headers: {
@@ -303,7 +306,18 @@ export class TranslationService {
 
     const data = await response.json()
 
+    // Extract rate limit info from headers
+    const rateLimitInfo = {
+      remaining: parseInt(response.headers.get('X-RateLimit-Remaining') || '0'),
+      limit: parseInt(response.headers.get('X-RateLimit-Limit') || '10')
+    }
+
     if (!response.ok) {
+      if (response.status === 429) {
+        // Rate limit exceeded
+        const resetTime = data.resetTime ? new Date(data.resetTime).toLocaleTimeString() : 'later'
+        throw new Error(`Rate limit exceeded. You can make 10 translations per hour. Try again at ${resetTime}.`)
+      }
       if (data.useMockTranslation) {
         // API suggests using mock translation
         throw new Error(data.error || 'API translation unavailable')
@@ -315,7 +329,7 @@ export class TranslationService {
       throw new Error('No translation received from API')
     }
 
-    return { content: data.translatedContent }
+    return { content: data.translatedContent, rateLimitInfo }
   }
 
   private static mockTranslate(content: string, targetLanguage: Language): string {

@@ -40,6 +40,7 @@ ConfigTranslator is a **free, AI-powered web application** that intelligently tr
 - Powered by GPT-4o-mini via OpenRouter
 - Context-aware Minecraft plugin understanding
 - Preserves technical functionality
+- Intelligent chunking for large files (1K+ lines)
 
 ### 🎨 **MiniMessage Support**
 - Maintains color codes: `<red>`, `<#FF0000>`
@@ -61,6 +62,7 @@ ConfigTranslator is a **free, AI-powered web application** that intelligently tr
 - 🇪🇸 Spanish • 🇸🇮 Slovenian • 🇩🇪 German • 🇮🇹 Italian
 
 ### 🛡️ **Smart Protection**
+- IP-based rate limiting (10 translations/hour)
 - File size limits (100KB max)
 - Secure server-side API calls
 - Input validation and sanitization
@@ -178,7 +180,7 @@ graph LR
 
 | Feature | Free Tier | Notes |
 |---------|-----------|-------|
-| **Translations** | Unlimited | No rate limits |
+| **Translations** | 10 per hour | Resets every hour |
 | **File Size** | 100KB max | Sufficient for most configs |
 | **Languages** | 7 supported | More coming soon |
 | **File Types** | 7 formats | YAML, JSON, Properties, Lang, etc. |

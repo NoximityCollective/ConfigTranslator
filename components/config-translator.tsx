@@ -24,6 +24,7 @@ export function ConfigTranslator() {
   const [translationResult, setTranslationResult] = useState<TranslationResult | null>(null)
   const [progress, setProgress] = useState(0)
   const [copied, setCopied] = useState(false)
+  const [rateLimitInfo, setRateLimitInfo] = useState<{ remaining: number; limit: number } | null>(null)
 
   const { toast } = useToast()
 
@@ -96,10 +97,29 @@ export function ConfigTranslator() {
       setTranslationResult(result)
       setProgress(100)
       
-      toast({
-        title: "Translation completed!",
-        description: `Successfully translated ${configFile.name} to ${targetLanguage.name}.`
-      })
+      // Update rate limit info if available
+      if (result.rateLimitInfo) {
+        setRateLimitInfo(result.rateLimitInfo)
+        
+        // Show warning if getting close to limit
+        if (result.rateLimitInfo.remaining <= 2 && result.rateLimitInfo.remaining > 0) {
+          toast({
+            title: "Translation completed!",
+            description: `Successfully translated ${configFile.name} to ${targetLanguage.name}. Warning: Only ${result.rateLimitInfo.remaining} translations remaining this hour.`,
+            variant: "destructive"
+          })
+        } else {
+          toast({
+            title: "Translation completed!",
+            description: `Successfully translated ${configFile.name} to ${targetLanguage.name}.`
+          })
+        }
+      } else {
+        toast({
+          title: "Translation completed!",
+          description: `Successfully translated ${configFile.name} to ${targetLanguage.name}.`
+        })
+      }
     } catch (error) {
       toast({
         title: "Translation failed",
@@ -177,6 +197,13 @@ export function ConfigTranslator() {
         <p className="text-sm text-muted-foreground mt-2">
           🤖 AI-powered translation service with MiniMessage color code support
         </p>
+        {rateLimitInfo && (
+          <div className="mt-3">
+            <Badge variant={rateLimitInfo.remaining <= 2 ? "destructive" : rateLimitInfo.remaining <= 5 ? "secondary" : "default"}>
+              {rateLimitInfo.remaining}/{rateLimitInfo.limit} translations remaining this hour
+            </Badge>
+          </div>
+        )}
 
         <div className="mt-4">
           <a 
@@ -283,6 +310,11 @@ export function ConfigTranslator() {
                   <span>{progress}%</span>
                 </div>
                 <Progress value={progress} className="w-full" />
+                {configFile && configFile.content.split('\n').length > 200 && (
+                  <div className="text-xs text-muted-foreground text-center">
+                    Large file detected ({configFile.content.split('\n').length} lines) - processing in chunks for better quality
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

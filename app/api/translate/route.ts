@@ -3,6 +3,9 @@ import OpenAI from 'openai'
 import { Language } from '@/lib/types'
 import { rateLimiter, getClientIdentifier } from '@/lib/rate-limiter'
 
+// Configure Edge Runtime for Cloudflare Pages compatibility
+export const runtime = 'edge'
+
 // Initialize OpenAI with OpenRouter (will be created per request with validated API key)
 let openai: OpenAI
 

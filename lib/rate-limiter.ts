@@ -18,6 +18,18 @@ class EdgeRateLimiter {
 
   check(identifier: string): { allowed: boolean; remaining: number; resetTime: number } {
     const now = Date.now()
+    
+    // Check if we're in local development (unlimited rate limit)
+    const isLocalDev = this.isLocalDevelopment()
+    
+    if (isLocalDev) {
+      return {
+        allowed: true,
+        remaining: 999, // Show high number for local dev
+        resetTime: now + this.windowMs
+      }
+    }
+
     const entry = this.requests.get(identifier)
 
     // Clean up expired entries
@@ -52,6 +64,20 @@ class EdgeRateLimiter {
       remaining: this.maxRequests - entry.count,
       resetTime: entry.resetTime
     }
+  }
+
+  private isLocalDevelopment(): boolean {
+    // Check various indicators that we're in local development
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || ''
+    const nodeEnv = process.env.NODE_ENV || ''
+    
+    return (
+      nodeEnv === 'development' ||
+      siteUrl.includes('localhost') ||
+      siteUrl.includes('127.0.0.1') ||
+      siteUrl.includes('3000') ||
+      siteUrl === 'http://localhost:3000'
+    )
   }
 
   private cleanup(now: number) {

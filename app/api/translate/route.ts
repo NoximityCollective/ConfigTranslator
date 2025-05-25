@@ -56,17 +56,17 @@ Return ONLY the translated configuration chunk with the same exact structure and
       "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
       "X-Title": process.env.NEXT_PUBLIC_SITE_NAME || "ConfigTranslator",
     },
-    body: JSON.stringify({
-      model: "openai/gpt-4o-mini",
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 8000, // Increased for better chunk handling
-    }),
+          body: JSON.stringify({
+        model: "google/gemini-flash-1.5-8b",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 30000, // Increased for better chunk handling
+      }),
   })
 
   if (!response.ok) {
@@ -97,7 +97,10 @@ export async function GET(request: NextRequest) {
     environment: {
       hasApiKey: !!process.env.OPENROUTER_API_KEY,
       siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
-      siteName: process.env.NEXT_PUBLIC_SITE_NAME
+      siteName: process.env.NEXT_PUBLIC_SITE_NAME,
+      nodeEnv: process.env.NODE_ENV,
+      isLocalDev: process.env.NODE_ENV === 'development' || 
+                  (process.env.NEXT_PUBLIC_SITE_URL || '').includes('localhost')
     },
     rateLimiter: {
       clientId: clientId.substring(0, 20) + '...',
@@ -256,7 +259,7 @@ Return ONLY the translated configuration file with the same exact structure and 
           "X-Title": process.env.NEXT_PUBLIC_SITE_NAME || "ConfigTranslator",
         },
         body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
+          model: "google/gemini-flash-1.5-8b",
           messages: [
             {
               role: "user",
@@ -264,7 +267,7 @@ Return ONLY the translated configuration file with the same exact structure and 
             }
           ],
           temperature: 0.3,
-          max_tokens: 8000, // Increased from 4000
+          max_tokens: 30000, // Increased from 4000
         }),
       })
 

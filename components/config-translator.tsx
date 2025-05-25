@@ -24,11 +24,11 @@ export function ConfigTranslator() {
   const [translationResult, setTranslationResult] = useState<TranslationResult | null>(null)
   const [progress, setProgress] = useState(0)
   const [copied, setCopied] = useState(false)
-  const [rateLimitInfo, setRateLimitInfo] = useState<{ remaining: number; limit: number } | null>(null)
+  const [rateLimitInfo, setRateLimitInfo] = useState<{ remaining: number; limit: number; resetTime?: number } | null>(null)
 
   const { toast } = useToast()
 
-  // Check rate limit status on component mount
+  // Check rate limit status on component mount and periodically refresh
   useEffect(() => {
     const checkRateLimit = async () => {
       try {
@@ -38,7 +38,8 @@ export function ConfigTranslator() {
           if (data.rateLimiter?.currentStatus) {
             setRateLimitInfo({
               remaining: data.rateLimiter.currentStatus.remaining,
-              limit: 10
+              limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10, // Handle local dev
+              resetTime: data.rateLimiter.currentStatus.resetTime
             })
           }
         }
@@ -47,8 +48,65 @@ export function ConfigTranslator() {
       }
     }
     
+    // Initial check
     checkRateLimit()
+    
+    // Refresh every 30 seconds for better UX
+    const interval = setInterval(checkRateLimit, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
+
+  // Helper function to format reset time
+  const formatResetTime = (resetTime: number) => {
+    const now = Date.now()
+    const timeLeft = resetTime - now
+    
+    if (timeLeft <= 0) return 'now'
+    
+    const minutes = Math.floor(timeLeft / (1000 * 60))
+    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000)
+    
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`
+    }
+    return `${seconds}s`
+  }
+
+  // Check if rate limited (but not in local dev)
+  const isRateLimited = rateLimitInfo?.remaining === 0 && rateLimitInfo?.limit !== 999
+
+  // Update countdown timer every second when rate limited
+  useEffect(() => {
+    if (!isRateLimited || !rateLimitInfo?.resetTime) return
+
+    const interval = setInterval(() => {
+      const now = Date.now()
+      if (now >= rateLimitInfo.resetTime!) {
+        // Rate limit has expired, refresh the status
+        const checkRateLimit = async () => {
+          try {
+            const response = await fetch('/api/translate')
+            if (response.ok) {
+              const data = await response.json()
+              if (data.rateLimiter?.currentStatus) {
+                setRateLimitInfo({
+                  remaining: data.rateLimiter.currentStatus.remaining,
+                  limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10,
+                  resetTime: data.rateLimiter.currentStatus.resetTime
+                })
+              }
+            }
+          } catch (error) {
+            console.log('Could not refresh rate limit status:', error)
+          }
+        }
+        checkRateLimit()
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [isRateLimited, rateLimitInfo?.resetTime])
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -123,8 +181,15 @@ export function ConfigTranslator() {
       if (result.rateLimitInfo) {
         setRateLimitInfo(result.rateLimitInfo)
         
-        // Show warning if getting close to limit
-        if (result.rateLimitInfo.remaining <= 2 && result.rateLimitInfo.remaining > 0) {
+        // Show warning if getting close to limit or rate limited
+        if (result.rateLimitInfo.remaining === 0) {
+          const resetTime = result.rateLimitInfo.resetTime ? new Date(result.rateLimitInfo.resetTime).toLocaleTimeString() : 'later'
+          toast({
+            title: "Translation completed!",
+            description: `Successfully translated ${configFile.name} to ${targetLanguage.name}. Rate limit reached - resets at ${resetTime}.`,
+            variant: "destructive"
+          })
+        } else if (result.rateLimitInfo.remaining <= 2) {
           toast({
             title: "Translation completed!",
             description: `Successfully translated ${configFile.name} to ${targetLanguage.name}. Warning: Only ${result.rateLimitInfo.remaining} translations remaining this hour.`,
@@ -143,6 +208,29 @@ export function ConfigTranslator() {
         })
       }
     } catch (error) {
+      // Check if it's a rate limit error and update the state
+      if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
+        // Try to extract reset time from error message or refresh rate limit status
+        const checkRateLimit = async () => {
+          try {
+            const response = await fetch('/api/translate')
+            if (response.ok) {
+              const data = await response.json()
+              if (data.rateLimiter?.currentStatus) {
+                setRateLimitInfo({
+                  remaining: data.rateLimiter.currentStatus.remaining,
+                  limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10,
+                  resetTime: data.rateLimiter.currentStatus.resetTime
+                })
+              }
+            }
+          } catch (error) {
+            console.log('Could not refresh rate limit status:', error)
+          }
+        }
+        checkRateLimit()
+      }
+      
       toast({
         title: "Translation failed",
         description: error instanceof Error ? error.message : "An unexpected error occurred.",
@@ -221,33 +309,23 @@ export function ConfigTranslator() {
         </p>
         {rateLimitInfo && (
           <div className="mt-3">
-            <Badge variant={rateLimitInfo.remaining <= 2 ? "destructive" : rateLimitInfo.remaining <= 5 ? "secondary" : "default"}>
-              {rateLimitInfo.remaining}/{rateLimitInfo.limit} translations remaining this hour
+            <Badge variant={
+              rateLimitInfo.remaining === 999 ? "default" : // Local dev
+              rateLimitInfo.remaining === 0 ? "destructive" : 
+              rateLimitInfo.remaining <= 2 ? "destructive" : 
+              rateLimitInfo.remaining <= 5 ? "secondary" : "default"
+            }>
+              {rateLimitInfo.remaining === 999 ? (
+                <>🚀 Local Development - Unlimited translations</>
+              ) : rateLimitInfo.remaining === 0 ? (
+                <>Rate limited - resets in {rateLimitInfo.resetTime ? formatResetTime(rateLimitInfo.resetTime) : 'unknown'}</>
+              ) : (
+                <>{rateLimitInfo.remaining}/{rateLimitInfo.limit} translations remaining this hour</>
+              )}
             </Badge>
           </div>
         )}
-        
-        {/* Debug: Show rate limit status */}
-        <div className="mt-2">
-          <button 
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/translate')
-                const data = await response.json()
-                console.log('Rate limit debug:', data.rateLimiter)
-                toast({
-                  title: "Rate Limit Debug",
-                  description: `Remaining: ${data.rateLimiter?.currentStatus?.remaining || 'Unknown'}, Total entries: ${data.rateLimiter?.stats?.totalEntries || 0}`,
-                })
-              } catch (error) {
-                console.error('Debug error:', error)
-              }
-            }}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            🔍 Debug Rate Limit Status
-          </button>
-        </div>
+
 
         <div className="mt-4">
           <a 
@@ -310,7 +388,7 @@ export function ConfigTranslator() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="language-select">Target Language</Label>
+              <Label htmlFor="language-select">Target Language (30 supported)</Label>
               <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select target language" />
@@ -330,7 +408,7 @@ export function ConfigTranslator() {
 
             <Button
               onClick={handleTranslate}
-              disabled={!configFile || !selectedLanguage || isTranslating}
+              disabled={!configFile || !selectedLanguage || isTranslating || isRateLimited}
               className="w-full"
               size="lg"
             >
@@ -338,6 +416,11 @@ export function ConfigTranslator() {
                 <>
                   <Globe className="h-4 w-4 mr-2 animate-spin" />
                   Translating...
+                </>
+              ) : isRateLimited ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2" />
+                  Rate Limited - Resets in {rateLimitInfo?.resetTime ? formatResetTime(rateLimitInfo.resetTime) : 'unknown'}
                 </>
               ) : (
                 <>
@@ -359,6 +442,16 @@ export function ConfigTranslator() {
                     Large file detected ({configFile.content.split('\n').length} lines) - processing in chunks for better quality
                   </div>
                 )}
+              </div>
+            )}
+
+            {isRateLimited && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-center">
+                <Clock className="h-8 w-8 mx-auto mb-2 text-destructive" />
+                <p className="text-sm font-medium text-destructive">Rate Limit Reached</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You can translate again in {rateLimitInfo?.resetTime ? formatResetTime(rateLimitInfo.resetTime) : 'unknown time'}
+                </p>
               </div>
             )}
           </CardContent>

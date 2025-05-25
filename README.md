@@ -37,7 +37,7 @@ ConfigTranslator is a **free, AI-powered web application** that intelligently tr
 <td width="50%">
 
 ### 🤖 **Smart AI Translation**
-- Powered by GPT-4o-mini via OpenRouter
+- Powered by Google Gemini Flash 1.5 8B via OpenRouter
 - Context-aware Minecraft plugin understanding
 - Preserves technical functionality
 - Intelligent chunking for large files (1K+ lines)
@@ -57,9 +57,12 @@ ConfigTranslator is a **free, AI-powered web application** that intelligently tr
 </td>
 <td width="50%">
 
-### 🌍 **7 Languages Supported**
-- 🇺🇸 English • 🇨🇳 Chinese • 🇫🇷 French
-- 🇪🇸 Spanish • 🇸🇮 Slovenian • 🇩🇪 German • 🇮🇹 Italian
+### 🌍 **30 Languages Supported**
+- 🇺🇸 English • 🇨🇳 Chinese • 🇫🇷 French • 🇪🇸 Spanish • 🇩🇪 German • 🇮🇹 Italian
+- 🇵🇹 Portuguese • 🇷🇺 Russian • 🇯🇵 Japanese • 🇰🇷 Korean • 🇳🇱 Dutch • 🇵🇱 Polish
+- 🇹🇷 Turkish • 🇸🇦 Arabic • 🇮🇳 Hindi • 🇹🇭 Thai • 🇻🇳 Vietnamese • 🇸🇪 Swedish
+- 🇳🇴 Norwegian • 🇩🇰 Danish • 🇫🇮 Finnish • 🇨🇿 Czech • 🇭🇺 Hungarian • 🇷🇴 Romanian
+- 🇧🇬 Bulgarian • 🇭🇷 Croatian • 🇸🇰 Slovak • 🇸🇮 Slovenian • 🇺🇦 Ukrainian • 🇮🇱 Hebrew
 
 ### 🛡️ **Smart Protection**
 - IP-based rate limiting (10 translations/hour)
@@ -170,7 +173,7 @@ graph LR
 | Frontend | Backend | AI & APIs | Styling | Tools |
 |----------|---------|-----------|---------|-------|
 | ![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js) | ![API Routes](https://img.shields.io/badge/API-Routes-green?style=flat-square) | ![OpenRouter](https://img.shields.io/badge/OpenRouter-API-purple?style=flat-square) | ![Tailwind](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=flat-square&logo=tailwind-css) | ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript) |
-| ![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react) | ![Edge Runtime](https://img.shields.io/badge/Edge-Runtime-orange?style=flat-square) | ![GPT-4o-mini](https://img.shields.io/badge/GPT--4o--mini-AI-FF6B6B?style=flat-square) | ![shadcn/ui](https://img.shields.io/badge/shadcn-ui-black?style=flat-square) | ![ESLint](https://img.shields.io/badge/ESLint-Configured-4B32C3?style=flat-square&logo=eslint) |
+| ![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react) | ![Edge Runtime](https://img.shields.io/badge/Edge-Runtime-orange?style=flat-square) | ![Gemini Flash](https://img.shields.io/badge/Gemini--Flash--1.5--8B-AI-4285F4?style=flat-square) | ![shadcn/ui](https://img.shields.io/badge/shadcn-ui-black?style=flat-square) | ![ESLint](https://img.shields.io/badge/ESLint-Configured-4B32C3?style=flat-square&logo=eslint) |
 
 </div>
 
@@ -182,7 +185,7 @@ graph LR
 |---------|-----------|-------|
 | **Translations** | 10 per hour | Resets every hour |
 | **File Size** | 100KB max | Sufficient for most configs |
-| **Languages** | 7 supported | More coming soon |
+| **Languages** | 30 supported | Covering major global languages |
 | **File Types** | 7 formats | YAML, JSON, Properties, Lang, etc. |
 
 ---

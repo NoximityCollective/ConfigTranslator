@@ -99,6 +99,108 @@ const MOCK_TRANSLATIONS: Record<string, Record<string, string>> = {
     'warning': 'avertissement',
     'info': 'information'
   },
+  'pt': {
+    'Welcome to the server': 'Bem-vindo ao servidor',
+    'Goodbye': 'Tchau',
+    'See you soon': 'Até breve',
+    'You don\'t have permission to use this command': 'Você não tem permissão para usar este comando',
+    'Player not found': 'Jogador não encontrado',
+    'Invalid command': 'Comando inválido',
+    'Main Menu': 'Menu Principal',
+    'Shop': 'Loja',
+    'Your balance': 'Seu saldo',
+    'join': 'entrar',
+    'leave': 'sair',
+    'death': 'morte',
+    'respawn': 'renascer',
+    'error': 'erro',
+    'success': 'sucesso'
+  },
+  'ru': {
+    'Welcome to the server': 'Добро пожаловать на сервер',
+    'Goodbye': 'До свидания',
+    'See you soon': 'Увидимся скоро',
+    'You don\'t have permission to use this command': 'У вас нет разрешения на использование этой команды',
+    'Player not found': 'Игрок не найден',
+    'Invalid command': 'Неверная команда',
+    'Main Menu': 'Главное меню',
+    'Shop': 'Магазин',
+    'Your balance': 'Ваш баланс',
+    'join': 'присоединиться',
+    'leave': 'покинуть',
+    'death': 'смерть',
+    'respawn': 'возрождение',
+    'error': 'ошибка',
+    'success': 'успех'
+  },
+  'ja': {
+    'Welcome to the server': 'サーバーへようこそ',
+    'Goodbye': 'さようなら',
+    'See you soon': 'また今度',
+    'You don\'t have permission to use this command': 'このコマンドを使用する権限がありません',
+    'Player not found': 'プレイヤーが見つかりません',
+    'Invalid command': '無効なコマンド',
+    'Main Menu': 'メインメニュー',
+    'Shop': 'ショップ',
+    'Your balance': 'あなたの残高',
+    'join': '参加',
+    'leave': '退出',
+    'death': '死',
+    'respawn': 'リスポーン',
+    'error': 'エラー',
+    'success': '成功'
+  },
+  'ko': {
+    'Welcome to the server': '서버에 오신 것을 환영합니다',
+    'Goodbye': '안녕히 가세요',
+    'See you soon': '곧 만나요',
+    'You don\'t have permission to use this command': '이 명령어를 사용할 권한이 없습니다',
+    'Player not found': '플레이어를 찾을 수 없습니다',
+    'Invalid command': '잘못된 명령어',
+    'Main Menu': '메인 메뉴',
+    'Shop': '상점',
+    'Your balance': '당신의 잔액',
+    'join': '참가',
+    'leave': '떠나기',
+    'death': '죽음',
+    'respawn': '리스폰',
+    'error': '오류',
+    'success': '성공'
+  },
+  'nl': {
+    'Welcome to the server': 'Welkom op de server',
+    'Goodbye': 'Tot ziens',
+    'See you soon': 'Tot snel',
+    'You don\'t have permission to use this command': 'Je hebt geen toestemming om dit commando te gebruiken',
+    'Player not found': 'Speler niet gevonden',
+    'Invalid command': 'Ongeldig commando',
+    'Main Menu': 'Hoofdmenu',
+    'Shop': 'Winkel',
+    'Your balance': 'Je saldo',
+    'join': 'deelnemen',
+    'leave': 'verlaten',
+    'death': 'dood',
+    'respawn': 'hergeboorte',
+    'error': 'fout',
+    'success': 'succes'
+  },
+  'pl': {
+    'Welcome to the server': 'Witamy na serwerze',
+    'Goodbye': 'Do widzenia',
+    'See you soon': 'Do zobaczenia wkrótce',
+    'You don\'t have permission to use this command': 'Nie masz uprawnień do użycia tej komendy',
+    'Player not found': 'Gracz nie znaleziony',
+    'Invalid command': 'Nieprawidłowa komenda',
+    'Main Menu': 'Menu główne',
+    'Shop': 'Sklep',
+    'Your balance': 'Twoje saldo',
+    'join': 'dołącz',
+    'leave': 'opuść',
+    'death': 'śmierć',
+    'respawn': 'odrodzenie',
+    'error': 'błąd',
+    'success': 'sukces'
+  },
   'de': {
     'Welcome to the server': 'Willkommen auf dem Server',
     'Goodbye': 'Auf Wiedersehen',
@@ -254,7 +356,7 @@ export class TranslationService {
     content: string,
     targetLanguage: Language,
     fileName: string
-  ): Promise<TranslationResult & { rateLimitInfo?: { remaining: number; limit: number } }> {
+  ): Promise<TranslationResult & { rateLimitInfo?: { remaining: number; limit: number; resetTime?: number } }> {
     const startTime = Date.now()
 
     if (!this.validateFileSize(content)) {
@@ -263,7 +365,7 @@ export class TranslationService {
 
     try {
       let translatedContent: string
-      let rateLimitInfo: { remaining: number; limit: number } | undefined
+      let rateLimitInfo: { remaining: number; limit: number; resetTime?: number } | undefined
 
       // Try AI translation via API route first
       try {
@@ -291,7 +393,7 @@ export class TranslationService {
     }
   }
 
-  private static async aiTranslate(content: string, targetLanguage: Language, fileName: string): Promise<{ content: string; rateLimitInfo?: { remaining: number; limit: number } }> {
+  private static async aiTranslate(content: string, targetLanguage: Language, fileName: string): Promise<{ content: string; rateLimitInfo?: { remaining: number; limit: number; resetTime?: number } }> {
     const response = await fetch('/api/translate', {
       method: 'POST',
       headers: {
@@ -309,7 +411,8 @@ export class TranslationService {
     // Extract rate limit info from headers
     const rateLimitInfo = {
       remaining: parseInt(response.headers.get('X-RateLimit-Remaining') || '0'),
-      limit: parseInt(response.headers.get('X-RateLimit-Limit') || '10')
+      limit: parseInt(response.headers.get('X-RateLimit-Limit') || '10'),
+      resetTime: parseInt(response.headers.get('X-RateLimit-Reset') || '0')
     }
 
     if (!response.ok) {

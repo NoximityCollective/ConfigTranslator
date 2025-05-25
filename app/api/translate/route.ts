@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Language } from '@/lib/types'
 import { rateLimiter, getClientIdentifier } from '@/lib/rate-limiter'
+import { d1Service, initializeD1Service, isLocalDevelopment } from '@/lib/d1-service'
+import { kvRateLimiter, initializeKVRateLimiter } from '@/lib/kv-rate-limiter'
 
 // Configure Edge Runtime for Cloudflare Pages compatibility
 export const runtime = 'edge'
@@ -135,8 +137,35 @@ Return ONLY the translated chunk with identical structure and formatting. Do not
 
 // Simple GET endpoint to test if the API route is working
 export async function GET(request: NextRequest) {
-  const clientId = getClientIdentifier(request)
-  const rateLimitStats = rateLimiter.getStats()
+  // Initialize services if available
+  if (!d1Service && (request as any).env?.DB) {
+    initializeD1Service((request as any).env.DB)
+  }
+  if (!kvRateLimiter && (request as any).env?.RATE_LIMIT_KV) {
+    initializeKVRateLimiter((request as any).env.RATE_LIMIT_KV)
+  }
+
+  const clientId = await getClientIdentifier(request)
+  const isLocalDev = isLocalDevelopment()
+  
+  // Get rate limit status
+  let rateLimitStatus
+  if (kvRateLimiter && !isLocalDev) {
+    rateLimitStatus = await kvRateLimiter.peekRateLimit(clientId)
+  } else {
+    // Fallback to in-memory rate limiter for local dev or if KV not available
+    rateLimitStatus = rateLimiter.peek(clientId)
+  }
+
+  // Get translation counter
+  let translationStats = { totalTranslations: 0, lastUpdated: new Date().toISOString() }
+  if (d1Service) {
+    try {
+      translationStats = await d1Service.getTranslationCounter()
+    } catch (error) {
+      console.error('Error getting translation stats:', error)
+    }
+  }
   
   return NextResponse.json({
     status: 'API route is working',
@@ -147,19 +176,34 @@ export async function GET(request: NextRequest) {
       siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
       siteName: process.env.NEXT_PUBLIC_SITE_NAME,
       nodeEnv: process.env.NODE_ENV,
-      isLocalDev: process.env.NODE_ENV === 'development' || 
-                  (process.env.NEXT_PUBLIC_SITE_URL || '').includes('localhost')
+      isLocalDev,
+      hasD1: !!d1Service,
+      hasKV: !!kvRateLimiter
     },
+    translationStats,
     rateLimiter: {
-      clientId: clientId.substring(0, 20) + '...',
-      stats: rateLimitStats,
-      currentStatus: rateLimiter.peek(clientId)
+      clientId: clientId.substring(0, 20) + '...', // Hashed ID for privacy
+      currentStatus: {
+        allowed: rateLimitStatus.allowed,
+        remaining: rateLimitStatus.remaining,
+        resetTime: rateLimitStatus.resetTime
+      }
     }
   })
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  
   try {
+    // Initialize services if available
+    if (!d1Service && (request as any).env?.DB) {
+      initializeD1Service((request as any).env.DB)
+    }
+    if (!kvRateLimiter && (request as any).env?.RATE_LIMIT_KV) {
+      initializeKVRateLimiter((request as any).env.RATE_LIMIT_KV)
+    }
+
     console.log('API route called - parsing request body...')
     const { content, targetLanguage, fileName } = await request.json()
 
@@ -171,11 +215,19 @@ export async function POST(request: NextRequest) {
     })
 
     // Rate limiting check
-    const clientId = getClientIdentifier(request)
-    const rateLimitResult = rateLimiter.check(clientId)
+    const clientId = await getClientIdentifier(request)
+    const isLocalDev = isLocalDevelopment()
+    
+    let rateLimitResult
+    if (kvRateLimiter && !isLocalDev) {
+      rateLimitResult = await kvRateLimiter.checkRateLimit(clientId)
+    } else {
+      // Fallback to in-memory rate limiter for local dev or if KV not available
+      rateLimitResult = rateLimiter.check(clientId)
+    }
     
     console.log('Rate limit check:', {
-      clientId: clientId.substring(0, 20) + '...', // Log partial ID for privacy
+      clientId: clientId.substring(0, 20) + '...', // Log partial hashed ID for privacy
       allowed: rateLimitResult.allowed,
       remaining: rateLimitResult.remaining
     })
@@ -382,10 +434,33 @@ Return ONLY the translated configuration file with the same exact structure and 
 
     // Final cleanup
     const cleanedContent = translatedContent
+    const processingTime = Date.now() - startTime
+
+    // Increment translation counter and log translation
+    let totalTranslations = 0
+    if (d1Service) {
+      try {
+        totalTranslations = await d1Service.incrementTranslationCounter()
+        
+        // Log translation details
+        await d1Service.logTranslation({
+          hashedIPAddress: clientId,
+          targetLanguage: targetLanguage.code,
+          fileType: fileName.split('.').pop()?.toLowerCase(),
+          fileSize: new Blob([content]).size,
+          linesCount: content.split('\n').length,
+          success: true,
+          processingTime
+        })
+      } catch (error) {
+        console.error('Error updating translation stats:', error)
+      }
+    }
 
     return NextResponse.json({
       translatedContent: cleanedContent,
-      success: true
+      success: true,
+      totalTranslations: totalTranslations > 0 ? totalTranslations : undefined
     }, {
       headers: {
         'X-RateLimit-Limit': '10',

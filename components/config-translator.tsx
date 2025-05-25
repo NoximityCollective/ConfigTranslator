@@ -25,6 +25,7 @@ export function ConfigTranslator() {
   const [progress, setProgress] = useState(0)
   const [copied, setCopied] = useState(false)
   const [rateLimitInfo, setRateLimitInfo] = useState<{ remaining: number; limit: number; resetTime?: number } | null>(null)
+  const [translationStats, setTranslationStats] = useState<{ totalTranslations: number; lastUpdated: string } | null>(null)
 
   const { toast } = useToast()
 
@@ -41,6 +42,9 @@ export function ConfigTranslator() {
               limit: data.rateLimiter.currentStatus.remaining === 999 ? 999 : 10, // Handle local dev
               resetTime: data.rateLimiter.currentStatus.resetTime
             })
+          }
+          if (data.translationStats) {
+            setTranslationStats(data.translationStats)
           }
         }
       } catch (error) {
@@ -307,6 +311,13 @@ export function ConfigTranslator() {
         <p className="text-sm text-muted-foreground mt-2">
           🤖 AI-powered translation service with MiniMessage color code support
         </p>
+        {translationStats && (
+          <div className="mt-2">
+            <Badge variant="outline" className="text-xs">
+              📊 {translationStats.totalTranslations.toLocaleString()} translations completed
+            </Badge>
+          </div>
+        )}
         {rateLimitInfo && (
           <div className="mt-3">
             <Badge variant={

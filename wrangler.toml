@@ -1,0 +1,25 @@
+# ConfigTranslator - Wrangler Configuration
+# This file configures Cloudflare Workers/Pages deployment
+# 
+# IMPORTANT: Update the database_id and KV namespace id with your own values
+# See SELF_HOSTING.md for setup instructions
+
+name = "configtranslator"
+compatibility_date = "2024-01-01"
+
+# D1 Database binding for translation counter and analytics
+# Replace 'database_id' with your own D1 database ID
+[[d1_databases]]
+binding = "DB"
+database_name = "configtranslator-db"
+database_id = "YOUR_D1_DATABASE_ID_HERE"
+
+# KV Namespace binding for rate limiting
+# Replace 'id' with your own KV namespace ID
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "YOUR_KV_NAMESPACE_ID_HERE"
+
+# Environment variables for local development
+[vars]
+NODE_ENV = "development" 

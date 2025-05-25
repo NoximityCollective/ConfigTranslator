@@ -148,8 +148,26 @@ class EdgeRateLimiter {
 // Create a singleton instance
 export const rateLimiter = new EdgeRateLimiter()
 
-// Helper function to get client identifier from Edge Runtime request
-export function getClientIdentifier(request: Request): string {
+import { getRealIPAddress, createIPKey, sanitizeIPForLogging } from './ip-utils'
+
+// Helper function to get hashed client identifier from Edge Runtime request
+export async function getClientIdentifier(request: Request): Promise<string> {
+  // Get the real IP address
+  const realIP = getRealIPAddress(request)
+  
+  // Create a hashed identifier for privacy
+  const hashedIP = await createIPKey(realIP)
+  
+  // Log sanitized IP for debugging (optional)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`Client IP: ${sanitizeIPForLogging(realIP)} -> Hash: ${hashedIP}`)
+  }
+  
+  return hashedIP
+}
+
+// Legacy synchronous function for backward compatibility
+export function getClientIdentifierSync(request: Request): string {
   // Try to get real IP from Cloudflare headers
   const cfConnectingIp = request.headers.get('cf-connecting-ip')
   const xForwardedFor = request.headers.get('x-forwarded-for')

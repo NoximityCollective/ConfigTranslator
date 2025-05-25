@@ -7,9 +7,16 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:cf": "wrangler pages dev --d1 DB=configtranslator-db --kv RATE_LIMIT_KV=YOUR_KV_NAMESPACE_ID_HERE",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "npm run build && wrangler pages deploy .next --project-name configtranslator",
+    "setup:db": "wrangler d1 execute configtranslator-db --file=./schema.sql --remote",
+    "setup:local-db": "wrangler d1 execute configtranslator-db --file=./schema.sql",
+    "db:query": "wrangler d1 execute configtranslator-db --remote",
+    "kv:list": "wrangler kv key list",
+    "logs": "wrangler pages deployment tail"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
@@ -37,6 +44,7 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^3.0.0"
   }
 }

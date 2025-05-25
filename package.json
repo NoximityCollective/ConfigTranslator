@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:cf": "wrangler pages dev --config wrangler.local.toml",
-    "build": "next build",
+    "build": "next build && rm -rf .next/cache",
+    "postbuild": "rm -rf .next/cache",
     "start": "next start",
     "lint": "next lint",
     "deploy": "./scripts/deploy-local.sh",

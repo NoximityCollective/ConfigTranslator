@@ -181,6 +181,14 @@ export function ConfigTranslator() {
       setTranslationResult(result)
       setProgress(100)
       
+      // Update translation stats if available
+      if (result.totalTranslations !== undefined) {
+        setTranslationStats({
+          totalTranslations: result.totalTranslations,
+          lastUpdated: new Date().toISOString()
+        })
+      }
+      
       // Update rate limit info if available
       if (result.rateLimitInfo) {
         setRateLimitInfo(result.rateLimitInfo)

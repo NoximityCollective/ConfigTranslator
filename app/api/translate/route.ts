@@ -7,6 +7,11 @@ import { kvRateLimiter, initializeKVRateLimiter } from '@/lib/kv-rate-limiter'
 // Configure Edge Runtime for Cloudflare Pages compatibility
 export const runtime = 'edge'
 
+// Extend global type for local development counter
+declare global {
+  var localTranslationCounter: number | undefined
+}
+
 const MAX_FILE_SIZE = 100 * 1024 // 100KB limit
 const MAX_CHUNK_LINES = 150 // Reduced for better quality and context preservation
 
@@ -164,6 +169,13 @@ export async function GET(request: NextRequest) {
       translationStats = await d1Service.getTranslationCounter()
     } catch (error) {
       console.error('Error getting translation stats:', error)
+    }
+  } else if (isLocalDev) {
+    // For local development, return the in-memory counter
+    const localCount = global.localTranslationCounter || 0
+    translationStats = {
+      totalTranslations: localCount,
+      lastUpdated: new Date().toISOString()
     }
   }
   
@@ -455,12 +467,21 @@ Return ONLY the translated configuration file with the same exact structure and 
       } catch (error) {
         console.error('Error updating translation stats:', error)
       }
+    } else if (isLocalDev) {
+      // For local development, use a simple in-memory counter
+      // This will reset when the server restarts, but it's better than showing 0
+      if (!global.localTranslationCounter) {
+        global.localTranslationCounter = 0
+      }
+      global.localTranslationCounter++
+      totalTranslations = global.localTranslationCounter
+      console.log(`Local dev translation counter: ${totalTranslations}`)
     }
 
     return NextResponse.json({
       translatedContent: cleanedContent,
       success: true,
-      totalTranslations: totalTranslations > 0 ? totalTranslations : undefined
+      totalTranslations: totalTranslations
     }, {
       headers: {
         'X-RateLimit-Limit': '10',

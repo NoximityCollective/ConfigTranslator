@@ -15,12 +15,16 @@ class RateLimiter {
     this.maxRequests = maxRequests
     this.windowMs = windowMs
     
-    // Clean up expired entries every 10 minutes
-    setInterval(() => this.cleanup(), 10 * 60 * 1000)
+    // Note: setInterval is not available in Edge Runtime
+    // Cleanup will happen on-demand during check() calls
   }
 
   check(identifier: string): { allowed: boolean; remaining: number; resetTime: number } {
     const now = Date.now()
+    
+    // Perform cleanup on-demand (remove expired entries)
+    this.cleanup()
+    
     const entry = this.requests.get(identifier)
 
     if (!entry || now > entry.resetTime) {

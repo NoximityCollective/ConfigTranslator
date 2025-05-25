@@ -6,9 +6,6 @@ import { rateLimiter, getClientIdentifier } from '@/lib/rate-limiter'
 // Configure Edge Runtime for Cloudflare Pages compatibility
 export const runtime = 'edge'
 
-// Initialize OpenAI with OpenRouter (will be created per request with validated API key)
-let openai: OpenAI
-
 const MAX_FILE_SIZE = 100 * 1024 // 100KB limit
 
 export async function POST(request: NextRequest) {
@@ -69,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize OpenAI with validated API key
-    openai = new OpenAI({
+    const openai = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: apiKey,
       defaultHeaders: {

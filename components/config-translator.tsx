@@ -437,9 +437,9 @@ export function ConfigTranslator() {
                   <span>{progress}%</span>
                 </div>
                 <Progress value={progress} className="w-full" />
-                {configFile && configFile.content.split('\n').length > 200 && (
+                {configFile && configFile.content.split('\n').length > 150 && (
                   <div className="text-xs text-muted-foreground text-center">
-                    Large file detected ({configFile.content.split('\n').length} lines) - processing in chunks for better quality
+                    Large file detected ({configFile.content.split('\n').length} lines) - processing in optimized chunks for better quality
                   </div>
                 )}
               </div>

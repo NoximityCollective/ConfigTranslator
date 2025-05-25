@@ -6,19 +6,59 @@ import { rateLimiter, getClientIdentifier } from '@/lib/rate-limiter'
 export const runtime = 'edge'
 
 const MAX_FILE_SIZE = 100 * 1024 // 100KB limit
-const MAX_CHUNK_LINES = 200 // Process files in chunks of 200 lines to avoid token limits
+const MAX_CHUNK_LINES = 150 // Reduced for better quality and context preservation
 
-// Function to split content into manageable chunks
+// Function to split content into manageable chunks with smart boundaries
 function splitIntoChunks(content: string, maxLines: number): string[] {
   const lines = content.split('\n')
   const chunks: string[] = []
   
-  for (let i = 0; i < lines.length; i += maxLines) {
-    const chunk = lines.slice(i, i + maxLines).join('\n')
-    chunks.push(chunk)
+  let currentChunk: string[] = []
+  let currentLineCount = 0
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    currentChunk.push(line)
+    currentLineCount++
+    
+    // Check if we should split here
+    if (currentLineCount >= maxLines) {
+      // Try to find a good breaking point (empty line, comment, or section boundary)
+      let splitIndex = currentChunk.length
+      
+      // Look for a good breaking point in the last 20 lines
+      for (let j = Math.max(0, currentChunk.length - 20); j < currentChunk.length; j++) {
+        const checkLine = currentChunk[j].trim()
+        if (checkLine === '' || 
+            checkLine.startsWith('#') || 
+            checkLine.startsWith('//') ||
+            checkLine.match(/^[a-zA-Z0-9_-]+:$/) || // YAML section
+            checkLine === '}' || checkLine === '{' || // JSON boundaries
+            checkLine.startsWith('[') && checkLine.endsWith(']')) { // Properties sections
+          splitIndex = j + 1
+          break
+        }
+      }
+      
+      // Create chunk and prepare for next
+      if (splitIndex < currentChunk.length) {
+        chunks.push(currentChunk.slice(0, splitIndex).join('\n'))
+        currentChunk = currentChunk.slice(splitIndex)
+        currentLineCount = currentChunk.length
+      } else {
+        chunks.push(currentChunk.join('\n'))
+        currentChunk = []
+        currentLineCount = 0
+      }
+    }
   }
   
-  return chunks
+  // Add remaining lines as final chunk
+  if (currentChunk.length > 0) {
+    chunks.push(currentChunk.join('\n'))
+  }
+  
+  return chunks.filter(chunk => chunk.trim().length > 0)
 }
 
 // Function to translate a single chunk
@@ -27,26 +67,34 @@ async function translateChunk(
   targetLanguage: any, 
   apiKey: string, 
   chunkIndex: number, 
-  totalChunks: number
+  totalChunks: number,
+  fileName: string
 ): Promise<string> {
-  const prompt = `You are a professional translator specializing in Minecraft plugin configuration files. 
+  const fileType = fileName.split('.').pop()?.toLowerCase() || 'config'
+  
+  const prompt = `You are a professional translator specializing in Minecraft plugin configuration files.
 
-IMPORTANT RULES:
-1. ONLY translate human-readable text content (messages, descriptions, etc.)
-2. PRESERVE all MiniMessage color codes exactly as they are (e.g., <red>, <green>, <gradient:blue:purple>, <#FF0000>)
-3. PRESERVE all placeholders exactly as they are (e.g., %player%, %time%, %balance%, %count%)
-4. PRESERVE all YAML/JSON structure, keys, technical values, and formatting
-5. DO NOT translate configuration keys, file paths, technical identifiers, or boolean/numeric values
-6. PRESERVE all comments and their formatting
-7. This is chunk ${chunkIndex + 1} of ${totalChunks} - maintain consistency with previous translations
+CRITICAL TRANSLATION RULES:
+1. ONLY translate human-readable text content (messages, descriptions, lore text, etc.)
+2. PRESERVE ALL technical elements EXACTLY:
+   - MiniMessage color codes: <red>, <green>, <gradient:blue:purple>, <#FF0000>
+   - Placeholders: %player%, %time%, %balance%, %count%, {player}, etc.
+   - YAML/JSON structure, keys, and formatting
+   - Configuration keys, file paths, technical identifiers
+   - Boolean/numeric values (true, false, numbers)
+   - Comments and their formatting
+3. Maintain consistent terminology throughout all chunks
+4. This is chunk ${chunkIndex + 1} of ${totalChunks} from a ${fileType} file
 
-Translate the following Minecraft plugin configuration file chunk to ${targetLanguage.name} (${targetLanguage.code}):
+CONTEXT: This is part of a larger Minecraft plugin configuration file. Maintain consistency with standard Minecraft terminology in ${targetLanguage.name}.
+
+File chunk to translate:
 
 \`\`\`
 ${chunk}
 \`\`\`
 
-Return ONLY the translated configuration chunk with the same exact structure and formatting.`
+Return ONLY the translated chunk with identical structure and formatting. Do not add explanations or modify the format.`
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -64,8 +112,8 @@ Return ONLY the translated configuration chunk with the same exact structure and
             content: prompt
           }
         ],
-        temperature: 0.3,
-        max_tokens: 30000, // Increased for better chunk handling
+        temperature: 0.2, // Lower temperature for more consistent translations
+        max_tokens: 16000, // Optimized for chunk size
       }),
   })
 
@@ -209,25 +257,47 @@ export async function POST(request: NextRequest) {
       
       const translatedChunks: string[] = []
       
-      // Process each chunk
+      // Process each chunk with retry logic
       for (let i = 0; i < chunks.length; i++) {
         console.log(`Translating chunk ${i + 1}/${chunks.length}...`)
-        try {
-          const translatedChunk = await translateChunk(chunks[i], targetLanguage, apiKey, i, chunks.length)
+        
+        let retryCount = 0
+        const maxRetries = 2
+        let translatedChunk: string | null = null
+        
+        while (retryCount <= maxRetries && !translatedChunk) {
+          try {
+            translatedChunk = await translateChunk(chunks[i], targetLanguage, apiKey, i, chunks.length, fileName)
+            console.log(`Chunk ${i + 1} completed successfully${retryCount > 0 ? ` (retry ${retryCount})` : ''}`)
+          } catch (error) {
+            retryCount++
+            console.error(`Error translating chunk ${i + 1} (attempt ${retryCount}):`, error)
+            
+            if (retryCount > maxRetries) {
+              return NextResponse.json(
+                { error: `Failed to translate chunk ${i + 1} after ${maxRetries + 1} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`, useMockTranslation: true },
+                { status: 500 }
+              )
+            }
+            
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+          }
+        }
+        
+        if (translatedChunk) {
           translatedChunks.push(translatedChunk)
-          console.log(`Chunk ${i + 1} completed successfully`)
-        } catch (error) {
-          console.error(`Error translating chunk ${i + 1}:`, error)
-          return NextResponse.json(
-            { error: `Failed to translate chunk ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`, useMockTranslation: true },
-            { status: 500 }
-          )
         }
       }
       
-      // Combine all translated chunks
-      translatedContent = translatedChunks.join('\n')
+      // Combine all translated chunks with smart joining
+      translatedContent = translatedChunks
+        .map(chunk => chunk.trim()) // Remove extra whitespace
+        .filter(chunk => chunk.length > 0) // Remove empty chunks
+        .join('\n')
+      
       console.log('All chunks processed successfully')
+      console.log(`Combined ${translatedChunks.length} chunks into final result`)
       
     } else {
       console.log('Processing small file as single request...')

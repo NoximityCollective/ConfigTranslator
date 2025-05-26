@@ -229,6 +229,21 @@ export async function POST(request: NextRequest) {
       translatedContent = translatedChunks.join('\n')
       console.log('All chunks processed successfully')
       
+      // Return with chunking info for better user feedback
+      return NextResponse.json({
+        translatedContent: translatedContent,
+        success: true,
+        chunked: true,
+        totalChunks: chunks.length,
+        message: `Large file processed in ${chunks.length} chunks for optimal quality`
+      }, {
+        headers: {
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
+        }
+      })
+      
     } else {
       console.log('Processing small file as single request...')
       // For smaller files, use the original single-request approach

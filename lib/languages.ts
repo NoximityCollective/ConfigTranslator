@@ -31,6 +31,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
   { code: "sl", name: "Slovenian", flag: "🇸🇮" },
   { code: "uk", name: "Ukrainian", flag: "🇺🇦" },
   { code: "he", name: "Hebrew", flag: "🇮🇱" },
+  { code: "id", name: "Indonesian", flag: "🇮🇩" },
 ]
 
 export const getLanguageByCode = (code: string): Language | undefined => {

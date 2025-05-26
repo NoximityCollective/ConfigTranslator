@@ -162,10 +162,21 @@ export function ConfigTranslator() {
     setIsTranslating(true)
     setProgress(0)
 
-    // Simulate progress
+    // Check if it's a large file that will be chunked
+    const isLargeFile = configFile.content.split('\n').length > 200
+    
+    // Different progress simulation for large vs small files
     const progressInterval = setInterval(() => {
-      setProgress(prev => Math.min(prev + 10, 90))
-    }, 200)
+      setProgress(prev => {
+        if (isLargeFile) {
+          // Slower progress for large files to be more realistic
+          return Math.min(prev + 5, 85)
+        } else {
+          // Faster progress for small files
+          return Math.min(prev + 15, 90)
+        }
+      })
+    }, isLargeFile ? 500 : 200)
 
     try {
       const result = await TranslationService.translateConfig(
@@ -196,15 +207,21 @@ export function ConfigTranslator() {
             variant: "destructive"
           })
         } else {
+          // Check if it was a chunked translation for special message
+          const baseMessage = `Successfully translated ${configFile.name} to ${targetLanguage.name}.`
+          const chunkMessage = isLargeFile ? ` Large file processed in chunks for optimal quality.` : ''
           toast({
             title: "Translation completed!",
-            description: `Successfully translated ${configFile.name} to ${targetLanguage.name}.`
+            description: baseMessage + chunkMessage
           })
         }
       } else {
+        // Check if it was a chunked translation for special message
+        const baseMessage = `Successfully translated ${configFile.name} to ${targetLanguage.name}.`
+        const chunkMessage = isLargeFile ? ` Large file processed in chunks for optimal quality.` : ''
         toast({
           title: "Translation completed!",
-          description: `Successfully translated ${configFile.name} to ${targetLanguage.name}.`
+          description: baseMessage + chunkMessage
         })
       }
     } catch (error) {
@@ -401,11 +418,16 @@ export function ConfigTranslator() {
                 <div className="text-sm text-muted-foreground">
                   {configFile.content.split('\n').length} lines • {configFile.type} file
                 </div>
+                {configFile.content.split('\n').length > 200 && (
+                  <div className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                    ⚡ Large file - will be processed in chunks for optimal quality
+                  </div>
+                )}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="language-select">Target Language (30 supported)</Label>
+                              <Label htmlFor="language-select">Target Language (31 supported)</Label>
               <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select target language" />
@@ -450,13 +472,23 @@ export function ConfigTranslator() {
             {isTranslating && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Translation Progress</span>
+                  <span>
+                    {configFile && configFile.content.split('\n').length > 200 
+                      ? 'Processing Large File...' 
+                      : 'Translation Progress'
+                    }
+                  </span>
                   <span>{progress}%</span>
                 </div>
                 <Progress value={progress} className="w-full" />
                 {configFile && configFile.content.split('\n').length > 200 && (
                   <div className="text-xs text-muted-foreground text-center">
-                    Large file detected ({configFile.content.split('\n').length} lines) - processing in chunks for better quality
+                    Large file detected ({configFile.content.split('\n').length} lines) - processing in chunks for optimal quality
+                  </div>
+                )}
+                {configFile && configFile.content.split('\n').length > 200 && progress > 0 && (
+                  <div className="text-xs text-blue-600 text-center">
+                    ⚡ AI is carefully translating each section while preserving structure and formatting
                   </div>
                 )}
               </div>
@@ -564,6 +596,11 @@ export function ConfigTranslator() {
                         <span>{translationResult.targetLanguage.flag}</span>
                         <span>{translationResult.targetLanguage.name}</span>
                       </div>
+                      {translationResult.stats.originalLines > 200 && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          ⚡ Chunked processing
+                        </div>
+                      )}
                     </div>
                   </div>
                 </TabsContent>

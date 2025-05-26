@@ -341,6 +341,53 @@ const MOCK_TRANSLATIONS: Record<string, Record<string, string>> = {
     'success': 'successo',
     'warning': 'avvertimento',
     'info': 'informazione'
+  },
+  'id': {
+    'Welcome to the server': 'Selamat datang di server',
+    'Goodbye': 'Selamat tinggal',
+    'See you soon': 'Sampai jumpa lagi',
+    'You don\'t have permission to use this command': 'Anda tidak memiliki izin untuk menggunakan perintah ini',
+    'Available commands': 'Perintah yang tersedia',
+    'Show this help message': 'Tampilkan pesan bantuan ini',
+    'Teleport to spawn': 'Teleport ke spawn',
+    'Teleport to your home': 'Teleport ke rumah Anda',
+    'Player not found': 'Pemain tidak ditemukan',
+    'Invalid command': 'Perintah tidak valid',
+    'Use /help for assistance': 'Gunakan /help untuk bantuan',
+    'Please wait': 'Harap tunggu',
+    'seconds before using this command again': 'detik sebelum menggunakan perintah ini lagi',
+    'Main Menu': 'Menu Utama',
+    'Teleportation': 'Teleportasi',
+    'Click to open teleportation menu': 'Klik untuk membuka menu teleportasi',
+    'Available destinations': 'Tujuan yang tersedia',
+    'Shop': 'Toko',
+    'Buy and sell items': 'Beli dan jual item',
+    'Your balance': 'Saldo Anda',
+    
+    // Sample config specific
+    'Sample Minecraft Plugin Configuration': 'Konfigurasi Plugin Minecraft Contoh',
+    'This is a test configuration file for ConfigTranslator': 'Ini adalah file konfigurasi uji untuk ConfigTranslator',
+    'AwesomePlugin': 'PluginKeren',
+    'Welcome to the server, %player%!': 'Selamat datang di server, %player%!',
+    'Goodbye, %player%! See you soon!': 'Selamat tinggal, %player%! Sampai jumpa lagi!',
+    'You don\'t have permission to use this command!': 'Anda tidak memiliki izin untuk menggunakan perintah ini!',
+    'Invalid command. Use /help for assistance.': 'Perintah tidak valid. Gunakan /help untuk bantuan.',
+    'Please wait %time% seconds before using this command again.': 'Harap tunggu %time% detik sebelum menggunakan perintah ini lagi.',
+    'Player not found!': 'Pemain tidak ditemukan!',
+    'Your balance: $%balance%': 'Saldo Anda: $%balance%',
+    'Available destinations: %count%': 'Tujuan yang tersedia: %count%',
+    
+    // Common .lang file entries
+    'join': 'bergabung',
+    'leave': 'keluar',
+    'death': 'kematian',
+    'respawn': 'respawn',
+    'chat': 'obrolan',
+    'command': 'perintah',
+    'error': 'kesalahan',
+    'success': 'berhasil',
+    'warning': 'peringatan',
+    'info': 'informasi'
   }
 }
 
@@ -393,7 +440,7 @@ export class TranslationService {
     }
   }
 
-  private static async aiTranslate(content: string, targetLanguage: Language, fileName: string): Promise<{ content: string; rateLimitInfo?: { remaining: number; limit: number; resetTime?: number } }> {
+  private static async aiTranslate(content: string, targetLanguage: Language, fileName: string): Promise<{ content: string; rateLimitInfo?: { remaining: number; limit: number; resetTime?: number }; chunked?: boolean; totalChunks?: number; message?: string }> {
     const response = await fetch('/api/translate', {
       method: 'POST',
       headers: {
@@ -432,7 +479,18 @@ export class TranslationService {
       throw new Error('No translation received from API')
     }
 
-    return { content: data.translatedContent, rateLimitInfo }
+    // Log chunking info if available
+    if (data.chunked) {
+      console.log(`Large file processed: ${data.totalChunks} chunks, message: ${data.message}`)
+    }
+
+    return { 
+      content: data.translatedContent, 
+      rateLimitInfo,
+      chunked: data.chunked,
+      totalChunks: data.totalChunks,
+      message: data.message
+    }
   }
 
   private static mockTranslate(content: string, targetLanguage: Language): string {

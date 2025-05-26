@@ -64,7 +64,7 @@ export function Footer() {
               <div>🎨 MiniMessage Support</div>
               <div>📁 7 File Formats Supported</div>
               <div>🚀 Free to Use</div>
-              <div>🌍 7 Languages Supported</div>
+              <div>🌍 31 Languages Supported</div>
             </div>
           </div>
         </div>

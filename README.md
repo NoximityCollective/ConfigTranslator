@@ -57,12 +57,12 @@ ConfigTranslator is a **free, AI-powered web application** that intelligently tr
 </td>
 <td width="50%">
 
-### 🌍 **30 Languages Supported**
+### 🌍 **31 Languages Supported**
 - 🇺🇸 English • 🇨🇳 Chinese • 🇫🇷 French • 🇪🇸 Spanish • 🇩🇪 German • 🇮🇹 Italian
 - 🇵🇹 Portuguese • 🇷🇺 Russian • 🇯🇵 Japanese • 🇰🇷 Korean • 🇳🇱 Dutch • 🇵🇱 Polish
 - 🇹🇷 Turkish • 🇸🇦 Arabic • 🇮🇳 Hindi • 🇹🇭 Thai • 🇻🇳 Vietnamese • 🇸🇪 Swedish
 - 🇳🇴 Norwegian • 🇩🇰 Danish • 🇫🇮 Finnish • 🇨🇿 Czech • 🇭🇺 Hungarian • 🇷🇴 Romanian
-- 🇧🇬 Bulgarian • 🇭🇷 Croatian • 🇸🇰 Slovak • 🇸🇮 Slovenian • 🇺🇦 Ukrainian • 🇮🇱 Hebrew
+- 🇧🇬 Bulgarian • 🇭🇷 Croatian • 🇸🇰 Slovak • 🇸🇮 Slovenian • 🇺🇦 Ukrainian • 🇮🇱 Hebrew • 🇮🇩 Indonesian
 
 ### 🛡️ **Smart Protection**
 - IP-based rate limiting (10 translations/hour)
@@ -185,7 +185,7 @@ graph LR
 |---------|-----------|-------|
 | **Translations** | 10 per hour | Resets every hour |
 | **File Size** | 100KB max | Sufficient for most configs |
-| **Languages** | 30 supported | Covering major global languages |
+| **Languages** | 31 supported | Covering major global languages |
 | **File Types** | 7 formats | YAML, JSON, Properties, Lang, etc. |
 
 ---
